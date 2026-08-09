@@ -20,11 +20,19 @@ import { ConfirmationModal } from "src/ui/obsidian-ui-components/modals/confirma
 import { escapeHtml } from "src/utils/escape-html";
 import EmulatedPlatform from "src/utils/platform-detector";
 import { RenderMarkdownWrapper } from "src/utils/renderers";
+import {
+    compareTypedAnswer,
+    formatTypedAnswerForMarkdown,
+    parseReviewCardContent,
+    TypedAnswerMatch,
+} from "src/utils/review-card-content";
+import { TextDirection } from "src/utils/strings";
 
 // TODO: Refactor cloze rendering into the renderers file
 export class CardContainer {
     private app: App;
     private plugin: SRPlugin;
+    private settings: SRSettings;
     private cardState: CardState;
 
     private view: HTMLDivElement;
@@ -41,6 +49,16 @@ export class CardContainer {
 
     private clozeInputs: NodeListOf<HTMLInputElement> | null = null;
     private clozeAnswers: NodeListOf<Element> | null = null;
+    private currentHints: string[] = [];
+    private revealedHintCount: number = 0;
+    private submittedTypedAnswer: string = "";
+    private currentSessionData: SessionData | null = null;
+    private readonly submitTypedAnswerHandler = (answer: string): void => {
+        this._submitTypedAnswer(answer);
+    };
+    private readonly showNextHintHandler = (): void => {
+        void this._showNextHint();
+    };
 
     private processReviewHandler: (response: ReviewResponse) => Promise<void>;
     private skipCardHandler: () => void;
@@ -65,6 +83,7 @@ export class CardContainer {
         // Init properties
         this.app = app;
         this.plugin = plugin;
+        this.settings = settings;
         this.cardState = CardState.Closed;
         this.processReviewHandler = processReviewHandler;
         this.skipCardHandler = skipCardHandler;
@@ -111,6 +130,8 @@ export class CardContainer {
             settings,
             this.showAnswerHandler,
             this.processReviewHandler,
+            this.submitTypedAnswerHandler,
+            this.showNextHintHandler,
         );
     }
 
@@ -163,9 +184,16 @@ export class CardContainer {
     }
 
     public async drawCardFront(sessionData: SessionData, settings: SRSettings) {
+        if (sessionData.cardData.currentCard === null) return;
+
         this.toolbar.setResetButtonDisabled(true);
         // Update current deck info
         this.cardState = sessionData.cardData.currentCardState;
+        this.settings = settings;
+        this.currentSessionData = sessionData;
+        this.currentHints = parseReviewCardContent(sessionData.cardData.currentCard.back).hints;
+        this.revealedHintCount = 0;
+        this.submittedTypedAnswer = "";
 
         this._updateInfoBar(sessionData, settings.flashcardCardOrder);
 
@@ -173,7 +201,10 @@ export class CardContainer {
         await this.drawCardFrontContent(sessionData, settings);
 
         // Update response buttons
-        this.response.resetResponseButtons();
+        this.response.resetResponseButtons(
+            sessionData.currentQuestion.questionType !== CardType.Cloze,
+            this.currentHints.length,
+        );
 
         // Setup cloze input listeners
         this._setupClozeInputListeners();
@@ -200,6 +231,8 @@ export class CardContainer {
     }
 
     private async drawCardFrontContent(sessionData: SessionData, settings: SRSettings) {
+        if (sessionData.cardData.currentCard === null) return;
+
         // Update card content
         this.content.empty();
 
@@ -214,13 +247,109 @@ export class CardContainer {
         );
 
         await wrapper.renderMarkdownWrapper(
-            sessionData.cardData.currentCard.front.trimStart(),
+            parseReviewCardContent(sessionData.cardData.currentCard.front).markdown.trimStart(),
             this.content,
             sessionData.currentQuestion.questionText.textDirection,
             // sessionData.cardData.currentCardState
         );
+
+        await this.drawRevealedHints(sessionData, wrapper);
         // Set scroll position back to top
         this.content.scrollTop = 0;
+    }
+
+    private async drawRevealedHints(
+        sessionData: SessionData,
+        wrapper: RenderMarkdownWrapper,
+    ): Promise<void> {
+        if (this.revealedHintCount === 0) return;
+
+        const hintContainer: HTMLDivElement = this.content.createDiv({
+            cls: "sr-hints",
+        });
+        hintContainer.createDiv({
+            cls: "sr-hints-heading",
+            text: "Hints",
+        });
+
+        for (let index = 0; index < this.revealedHintCount; index++) {
+            const hint: HTMLDivElement = hintContainer.createDiv({
+                cls: "sr-hint",
+            });
+            hint.createDiv({
+                cls: "sr-hint-label",
+                text: `Hint ${index + 1}`,
+            });
+            const hintContent: HTMLDivElement = hint.createDiv({
+                cls: "sr-hint-content",
+            });
+            await wrapper.renderMarkdownWrapper(
+                this.currentHints[index],
+                hintContent,
+                sessionData.currentQuestion.questionText.textDirection,
+            );
+        }
+    }
+
+    private async drawTypedAnswerReview(
+        wrapper: RenderMarkdownWrapper,
+        expectedAnswer: string,
+        textDirection: TextDirection,
+    ): Promise<void> {
+        const typedAnswerReview: HTMLDivElement = this.content.createDiv({
+            cls: "sr-typed-answer-review",
+        });
+        typedAnswerReview.createDiv({
+            cls: "sr-typed-answer-label",
+            text: "Your answer",
+        });
+
+        const answerMatch: TypedAnswerMatch = compareTypedAnswer({
+            typedAnswer: this.submittedTypedAnswer,
+            expectedAnswer,
+        });
+        let resultText: string;
+        switch (answerMatch.kind) {
+            case "exact":
+                resultText = "Correct";
+                break;
+            case "normalized":
+                resultText = "Matches after whitespace cleanup";
+                break;
+            case "different":
+                resultText = "Not quite";
+                break;
+            default:
+                throw new Error("Unhandled typed answer match");
+        }
+
+        typedAnswerReview.createDiv({
+            cls: ["sr-typed-answer-result", `sr-answer-${answerMatch.kind}`],
+            text: resultText,
+        });
+        const typedAnswerContent: HTMLDivElement = typedAnswerReview.createDiv({
+            cls: "sr-typed-answer-content",
+        });
+        await wrapper.renderMarkdownWrapper(
+            formatTypedAnswerForMarkdown(this.submittedTypedAnswer, expectedAnswer),
+            typedAnswerContent,
+            textDirection,
+        );
+    }
+
+    private _submitTypedAnswer(answer: string): void {
+        this.submittedTypedAnswer = answer;
+        this.showAnswerHandler();
+    }
+
+    private async _showNextHint(): Promise<void> {
+        if (this.currentSessionData === null) return;
+        if (this.revealedHintCount >= this.currentHints.length) return;
+
+        this.revealedHintCount += 1;
+        await this.drawCardFrontContent(this.currentSessionData, this.settings);
+        this._setupClozeInputListeners();
+        this.response.setHintProgress(this.currentHints.length, this.revealedHintCount);
     }
 
     public drawPendingState(nextPendingDueUnix: number): void {
@@ -343,6 +472,8 @@ export class CardContainer {
         settings: SRSettings,
         determineButtonSchedule: (response: ReviewResponse) => RepItemScheduleInfo | null,
     ) {
+        if (sessionData.cardData.currentCard === null) return;
+
         this.setCustomHotKeyState(settings.useCustomHotkeys);
         this.cardState = sessionData.cardData.currentCardState;
 
@@ -363,8 +494,22 @@ export class CardContainer {
             this.plugin,
             sessionData.currentNote.filePath,
         );
+        const answerContent = parseReviewCardContent(sessionData.cardData.currentCard.back);
+
+        if (this.submittedTypedAnswer.trim().length > 0) {
+            await this.drawTypedAnswerReview(
+                wrapper,
+                answerContent.markdown,
+                sessionData.currentQuestion.questionText.textDirection,
+            );
+        }
+
+        this.content.createDiv({
+            cls: "sr-answer-label",
+            text: "Answer",
+        });
         await wrapper.renderMarkdownWrapper(
-            sessionData.cardData.currentCard.back,
+            answerContent.markdown,
             this.content,
             sessionData.currentQuestion.questionText.textDirection,
             // sessionData.cardData.currentCardState,

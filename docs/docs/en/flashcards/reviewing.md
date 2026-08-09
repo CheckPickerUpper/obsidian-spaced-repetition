@@ -73,6 +73,7 @@ Context is only shown if enabled in [UI Preferences](../user-options.md#ui-prefe
 To review faster, use the following keyboard shortcuts:
 
 - `Space/Enter` => Show answer
+- `Ctrl/Cmd+Enter` => Submit a typed answer on normal Q&A cards
 - `0` => Reset card's progress (Sorta like `Again` in Anki)
 - `1` => Review as `Hard`
 - `2` => Review as `Good`
@@ -83,6 +84,8 @@ To review faster, use the following keyboard shortcuts:
 ## Reviewing
 
 Once done creating cards, click on the flashcards button on the left ribbon to start reviewing the flashcards. After a card is reviewed, a HTML comment is added containing the next review day, the interval, and the card's ease.
+
+Normal Q&A cards let you type an answer before revealing the back. **Check Answer** shows your submitted response beside the stored answer, while **Show Answer** remains available when you want to reveal it directly. If the answer contains an `SR-HINTS` block, **Show Hint 1** reveals up to three numbered hints in order.
 
 ```
 <!--SR:!2021-08-20,13,290-->

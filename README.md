@@ -30,6 +30,7 @@ Fight the forgetting curve by reviewing flashcards & notes using the FSRS or the
         - LaTeX
         - Code syntax highlighting
         - Footnotes
+- Typed answer review for normal Q&A cards, including three progressive hints and code-aware answer previews
 - [Organize Decks](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/decks/) (Using Obsidian's hierarchical tags or folder structure)
 - [Card context - automatic titles based on headings](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/reviewing/#context) (i.e. `Note title > Heading 1 > Subheading`)
 
