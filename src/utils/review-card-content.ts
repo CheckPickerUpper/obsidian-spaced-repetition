@@ -7,7 +7,7 @@ export type TypedAnswerMatch = { kind: "exact" } | { kind: "normalized" } | { ki
 
 const HINT_BLOCK_START = /^\s*<!--\s*SR-HINTS\s*$/i;
 const HINT_BLOCK_END = /^\s*-->\s*$/;
-const HINT_LINE = /^\s*(?:[1-3][.)]|Hint\s*[1-3]\s*:)\s*(.*)$/i;
+const HINT_LINE = /^\s*(?:\d+[.)]|Hint\s*\d+\s*:)\s*(.*)$/i;
 const COMPLETE_CODE_FENCE = /^```[^\n]*\n([\s\S]*?)\n```\s*$/;
 const CODE_FENCE = /(^|\n)\s*```/;
 const CODE_LANGUAGE = /```([A-Za-z0-9_+#.-]*)[ \t]*\r?\n/;
