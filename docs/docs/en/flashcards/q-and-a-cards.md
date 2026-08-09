@@ -29,6 +29,32 @@ the question goes on this side::answer goes here!
 
     </div>
 
+## Typed Answers, Hints, and Code Cards
+
+Normal Q&A cards show a text box before the answer is revealed. Type what you remember and choose **Check Answer**, or press `Ctrl/Cmd+Enter`. The plugin shows your submitted answer, compares it with the stored answer, and still leaves the scheduling rating to you.
+
+Typed answers are not written back to your note.
+
+Hints are authored on the answer side inside an `SR-HINTS` HTML comment. The first three numbered entries become progressive hints:
+
+````markdown
+How do you double every number in a TypeScript array?
+?
+<!-- SR-HINTS
+1. Start with the array method that returns a new array.
+2. Use a callback that receives one value.
+3. Multiply that value by two.
+-->
+
+```ts
+const doubled = values.map((value) => value * 2);
+```
+````
+
+The **Show Hint 1** button reveals the hints in order. The hint block stays hidden when the answer is revealed. Markdown code fences such as ` ```ts ` are rendered through Obsidian, and typed answers are shown in the expected answer's language when the answer contains a fenced code block.
+
+---
+
 ## Single-line Bidirectional
 
 Two cards are created from the single flashcard text.
