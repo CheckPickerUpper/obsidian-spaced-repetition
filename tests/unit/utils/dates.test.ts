@@ -51,10 +51,35 @@ describe("LiveDateProvider", () => {
 
         dayBoundary = { hour: 23, minute: 0, second: 0 };
         globalDateProvider.setDayBoundary(dayBoundary);
-
         expect(globalDateProvider.getDayBoundary()).toEqual(dayBoundary);
-        expect(globalDateProvider.today.year()).toBe(moment().year());
-        expect(globalDateProvider.today.month()).toBe(moment().month());
-        expect(globalDateProvider.today.week()).toBe(moment().week());
+
+        jest.useFakeTimers();
+        try {
+            // Before the boundary it is still the previous day
+            jest.setSystemTime(new Date(2024, 2, 1, 22, 0, 0));
+            expect(globalDateProvider.today.format("YYYY-MM-DD")).toBe("2024-02-29");
+
+            jest.setSystemTime(new Date(2024, 2, 1, 23, 30, 0));
+            expect(globalDateProvider.today.format("YYYY-MM-DD")).toBe("2024-03-01");
+        } finally {
+            jest.useRealTimers();
+            globalDateProvider.setDayBoundary(null);
+        }
+    });
+
+    test("today respects a day boundary on the hour", () => {
+        jest.useFakeTimers();
+        try {
+            globalDateProvider.setDayBoundary({ hour: 4, minute: 0, second: 0 });
+
+            jest.setSystemTime(new Date(2024, 2, 10, 3, 59, 0));
+            expect(globalDateProvider.today.format("YYYY-MM-DD")).toBe("2024-03-09");
+
+            jest.setSystemTime(new Date(2024, 2, 10, 4, 0, 0));
+            expect(globalDateProvider.today.format("YYYY-MM-DD")).toBe("2024-03-10");
+        } finally {
+            jest.useRealTimers();
+            globalDateProvider.setDayBoundary(null);
+        }
     });
 });
