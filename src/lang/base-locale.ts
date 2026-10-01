@@ -173,6 +173,13 @@ export interface IBaseLocale {
     MAX_N_DAYS_REVIEW_QUEUE: string;
     MIN_ONE_DAY: string;
     VALID_NUMBER_WARNING: string;
+    // daily limits
+    GROUP_DAILY_LIMITS: string;
+    NEW_CARDS_PER_DAY: string;
+    NEW_CARDS_PER_DAY_DESC: string;
+    MAX_REVIEWS_PER_DAY: string;
+    MAX_REVIEWS_PER_DAY_DESC: string;
+    DAILY_LIMIT_INVALID_WARNING: string;
     UI: string;
     OPEN_IN_TAB: string;
     OPEN_IN_TAB_DESC: string;

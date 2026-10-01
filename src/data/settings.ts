@@ -33,6 +33,9 @@ export interface SRSettings {
     reviewReminderShowNotice: boolean;
     reviewReminderPlaySound: boolean;
     reviewReminderBounceDock: boolean;
+    // daily limits (0 or empty = unlimited), shared by all decks, ignored in cram mode
+    newCardsPerDay: number;
+    maxReviewsPerDay: number;
 
     // notes
     enableNoteReviewPaneOnStartup: boolean;
@@ -123,6 +126,9 @@ export const DEFAULT_SETTINGS: SRSettings = {
     reviewReminderPlaySound: true,
     reviewReminderBounceDock: true,
     randomizeCardOrder: undefined,
+    // daily limits (0 = unlimited)
+    newCardsPerDay: 20,
+    maxReviewsPerDay: 200,
 
     // notes
     enableNoteReviewPaneOnStartup: true,

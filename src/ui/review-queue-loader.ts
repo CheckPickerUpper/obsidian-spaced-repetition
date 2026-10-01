@@ -13,6 +13,7 @@ import { SRSettings } from "src/data/settings";
 import SRPlugin from "src/main";
 import { Note } from "src/note/note";
 import { SRAlgorithm } from "src/scheduling/algorithms/base/sr-algorithm";
+import { DailyReviewLimiter } from "src/scheduling/daily-review-limits";
 import {
     FlashcardReviewMode,
     FlashcardReviewSequencer,
@@ -104,6 +105,17 @@ export class ReviewQueueLoader {
         );
 
         reviewSequencer.setDeckTree(fullDeckTree, remainingDeckTree);
+
+        // Daily limits only apply to review mode, cram mode ignores them
+        if (reviewMode === FlashcardReviewMode.Review) {
+            reviewSequencer.setDailyReviewLimiter(
+                new DailyReviewLimiter(
+                    this.plugin.dataManager.data,
+                    this.plugin.dataManager.data.settings,
+                    () => this.plugin.dataManager.savePluginData(),
+                ),
+            );
+        }
         return { reviewSequencer, mode: reviewMode };
     }
 

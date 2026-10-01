@@ -1,4 +1,4 @@
-import { Setting, SettingGroup } from "obsidian";
+import { Notice, Setting, SettingGroup } from "obsidian";
 
 import { DataManager } from "src/data/data-manager";
 import { DEFAULT_SETTINGS } from "src/data/settings";
@@ -190,6 +190,8 @@ export class FlashcardsPage extends SettingsPage {
                         }),
                 );
             });
+
+        this.addDailyLimitsSettings();
 
         new SettingGroup(this.containerEl)
             .setHeading(t("GROUP_FLASHCARD_SEPARATORS"))
@@ -525,5 +527,72 @@ export class FlashcardsPage extends SettingsPage {
                     });
                 }
             });
+    }
+
+    /**
+     * Adds the settings for the daily new card / review limits.
+     */
+    private addDailyLimitsSettings(): void {
+        const addLimitSetting = (
+            setting: Setting,
+            key: "newCardsPerDay" | "maxReviewsPerDay",
+            name: string,
+            desc: string,
+        ) => {
+            setting
+                .setName(name)
+                .setDesc(desc)
+                .addText((text) => {
+                    text.inputEl.type = "number";
+                    text.inputEl.min = "0";
+                    text.inputEl.step = "1";
+                    text.setPlaceholder(DEFAULT_SETTINGS[key].toString()).setValue(
+                        this.settingsManager.settings[key].toString(),
+                    );
+                    text.onChange((value) => {
+                        this.applySettingsUpdate(async () => {
+                            // Empty means unlimited (stored as 0)
+                            const parsedValue: number =
+                                value.trim() === "" ? 0 : Number(value.trim());
+                            if (!Number.isInteger(parsedValue) || parsedValue < 0) {
+                                new Notice(t("DAILY_LIMIT_INVALID_WARNING"));
+                                text.setValue(this.settingsManager.settings[key].toString());
+                                return;
+                            }
+                            this.settingsManager.settings[key] = parsedValue;
+                            await this.settingsManager.save();
+                        });
+                    });
+                })
+                .addExtraButton((button) => {
+                    button
+                        .setIcon("reset")
+                        .setTooltip(t("RESET_DEFAULT"))
+                        .onClick(async () => {
+                            this.settingsManager.settings[key] = DEFAULT_SETTINGS[key];
+                            await this.settingsManager.save();
+                            this.display();
+                        });
+                });
+        };
+
+        new SettingGroup(this.containerEl)
+            .setHeading(t("GROUP_DAILY_LIMITS"))
+            .addSetting((setting: Setting) =>
+                addLimitSetting(
+                    setting,
+                    "newCardsPerDay",
+                    t("NEW_CARDS_PER_DAY"),
+                    t("NEW_CARDS_PER_DAY_DESC"),
+                ),
+            )
+            .addSetting((setting: Setting) =>
+                addLimitSetting(
+                    setting,
+                    "maxReviewsPerDay",
+                    t("MAX_REVIEWS_PER_DAY"),
+                    t("MAX_REVIEWS_PER_DAY_DESC"),
+                ),
+            );
     }
 }
