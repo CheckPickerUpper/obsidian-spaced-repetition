@@ -46,6 +46,7 @@ export class CardContainer {
     private skipCardHandler: () => void;
     private showAnswerHandler: () => void;
     private jumpToCardHandler: () => Promise<void>;
+    private undoLastAnswerHandler: () => Promise<void>;
 
     constructor(
         app: App,
@@ -60,6 +61,7 @@ export class CardContainer {
         showAnswerHandler: () => void,
         jumpToCurrentCardHandler: () => Promise<void>,
         displayCurrentCardInfoNoticeHandler: () => void,
+        undoLastAnswerHandler: () => Promise<void>,
         closeModal?: () => void,
     ) {
         // Init properties
@@ -70,6 +72,7 @@ export class CardContainer {
         this.skipCardHandler = skipCardHandler;
         this.showAnswerHandler = showAnswerHandler;
         this.jumpToCardHandler = jumpToCurrentCardHandler;
+        this.undoLastAnswerHandler = undoLastAnswerHandler;
 
         // Build ui
         this.view = parentEl.createDiv();
@@ -97,6 +100,7 @@ export class CardContainer {
                     },
                 ).open();
             },
+            () => void this.undoLastAnswerHandler(),
             closeModal,
         );
 
@@ -221,6 +225,15 @@ export class CardContainer {
         );
         // Set scroll position back to top
         this.content.scrollTop = 0;
+    }
+
+    /**
+     * Enables/disables the undo button
+     *
+     * @param canUndo - Whether there is an answer that can be undone
+     */
+    public setUndoAvailable(canUndo: boolean): void {
+        this.toolbar.setUndoButtonDisabled(!canUndo);
     }
 
     public drawPendingState(nextPendingDueUnix: number): void {
@@ -394,7 +407,6 @@ export class CardContainer {
         if (this.plugin.uiManager === null) throw new Error("UI manager not initialized!!!");
         // Prevents any input, if the edit modal is open or if the view is not in focus
         if (
-            this.plugin.dataManager.data.settings.useCustomHotkeys ||
             (activeDocument.activeElement !== null &&
                 (activeDocument.activeElement.nodeName === "TEXTAREA" ||
                     activeDocument.activeElement.nodeName === "INPUT")) ||
@@ -410,6 +422,17 @@ export class CardContainer {
             e.preventDefault();
             e.stopPropagation();
         };
+
+        // Undo the last answer (Ctrl/Cmd+Z), also available when custom hotkeys are used
+        if (e.key?.toLowerCase() === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+            void this.undoLastAnswerHandler();
+            consumeKeyEvent();
+            return;
+        }
+
+        if (this.plugin.dataManager.data.settings.useCustomHotkeys) {
+            return;
+        }
 
         switch (e.code) {
             case "KeyS":

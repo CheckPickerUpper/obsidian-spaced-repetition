@@ -69,6 +69,14 @@ export interface IDeckTreeIterator {
      * @returns {boolean} - True if there is a next repetition item, false otherwise.
      */
     nextRepItem(): boolean;
+    /**
+     * Makes the specified repetition item the current one (e.g. after undoing a review).
+     * The item must be present within one of the decks being iterated over.
+     *
+     * @param {RepetitionItem} repItem - The repetition item.
+     * @returns {boolean} - True if the item was found and is now the current item, false otherwise.
+     */
+    setCurrentRepItem(repItem: RepetitionItem): boolean;
 }
 
 class SingleDeckIterator {
@@ -138,12 +146,21 @@ class SingleDeckIterator {
                         this.setCardListType(null);
                     }
                 } else {
-                    this.cardIdx = null;
+                    // The preferred list could have been repopulated in the meantime (e.g. by undoing
+                    // a review), so check it once more before moving on to the next deck
+                    this.setCardListType(this.preferredCardListType);
+                    if (!this.nextCardWithinCurrentList()) {
+                        this.setCardListType(null);
+                    }
                 }
             }
         }
 
         return this.cardIdx !== null && this.cardIdx !== undefined;
+    }
+
+    setCurrentCard(cardListType: RepItemState, cardIdx: number): void {
+        this.setCardListType(cardListType, cardIdx);
     }
 
     private nextRandomCard(): void {
@@ -412,6 +429,23 @@ export class DeckTreeIterator implements IDeckTreeIterator {
 
     moveCurrentRepItemToEndOfList(): void {
         this.singleDeckIterator.moveCurrentCardToEndOfList();
+    }
+
+    setCurrentRepItem(repItem: RepetitionItem): boolean {
+        if (!this.deckArray) return false;
+        for (let deckIdx = 0; deckIdx < this.deckArray.length; deckIdx++) {
+            const deck: Deck = this.deckArray[deckIdx];
+            for (const listType of [RepItemState.NewItem, RepItemState.DueItem]) {
+                const list: RepetitionItem[] = deck.getRepItemListForRepItemState(listType);
+                const idx: number = list.indexOf(repItem);
+                if (idx !== -1) {
+                    this.setDeckIdx(deckIdx);
+                    this.singleDeckIterator.setCurrentCard(listType, idx);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private removeCurrentDeckIfEmpty(): void {

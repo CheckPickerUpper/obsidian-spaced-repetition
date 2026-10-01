@@ -87,6 +87,9 @@ export interface SRSettings {
     cardCommentOnSameLine: boolean;
     scheduleDataVaultLocation: string;
 
+    // review log & undo
+    enableReviewLog: boolean;
+
     // logging
     showSchedulingDebugMessages: boolean;
     showParserDebugMessages: boolean;
@@ -177,6 +180,9 @@ export const DEFAULT_SETTINGS: SRSettings = {
     cardCommentOnSameLine: false,
     scheduleDataVaultLocation: "Spaced Repetition",
 
+    // review log & undo
+    enableReviewLog: true,
+
     // logging
     showSchedulingDebugMessages: false,
     showParserDebugMessages: false,
@@ -231,6 +237,10 @@ export function upgradeSettings(settings: SRSettings) {
         settings.scheduleDataVaultLocation.trim() === ""
     ) {
         settings.scheduleDataVaultLocation = DEFAULT_SETTINGS.scheduleDataVaultLocation;
+    }
+
+    if (settings.enableReviewLog === null || settings.enableReviewLog === undefined) {
+        settings.enableReviewLog = DEFAULT_SETTINGS.enableReviewLog;
     }
 
     if (settings.fsrsDesiredRetention === null || settings.fsrsDesiredRetention === undefined) {

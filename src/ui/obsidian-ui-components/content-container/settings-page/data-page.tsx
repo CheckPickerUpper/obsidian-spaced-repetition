@@ -180,6 +180,23 @@ export class DataPage extends SettingsPage {
             })
             .addSetting((setting: Setting) => {
                 setting
+                    .setName(t("ENABLE_REVIEW_LOG"))
+                    .setDesc(
+                        t("ENABLE_REVIEW_LOG_DESC", {
+                            folder: this.settingsManager.settings.scheduleDataVaultLocation,
+                        }),
+                    )
+                    .addToggle((toggle) =>
+                        toggle
+                            .setValue(this.settingsManager.settings.enableReviewLog)
+                            .onChange(async (value) => {
+                                this.settingsManager.settings.enableReviewLog = value;
+                                await this.settingsManager.save();
+                            }),
+                    );
+            })
+            .addSetting((setting: Setting) => {
+                setting
                     .setName(t("MIGRATE_SCHEDULING_COMMENTS_TO_CALLOUT"))
                     .setDesc(t("MIGRATE_SCHEDULING_COMMENTS_TO_CALLOUT_DESC"))
                     .addButton((button) => {

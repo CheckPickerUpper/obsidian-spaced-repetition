@@ -129,6 +129,9 @@ export default class SRPlugin extends Plugin {
     }
 
     onunload(): void {
+        if (this.isDataManagerLoaded()) {
+            void this.dataManager.reviewLog.flush();
+        }
         this.reminderManager.stopReviewReminders();
         this.app.workspace.getLeavesOfType(REVIEW_QUEUE_VIEW_TYPE).forEach((leaf) => leaf.detach());
         this.uiManager.destroy();

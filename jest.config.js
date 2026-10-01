@@ -33,6 +33,7 @@ export default {
         "src/data/settings-manager.ts",
         "src/data/data-store/.*/.*-file-modifier.ts",
         "src/data/data-store/.*/.*file-modifier.ts",
+        "src/data/review-log/review-log-vault-storage.ts",
         "src/note/next-note-review-handler.ts",
         "src/data/plugin-data.ts",
         "src/utils/renderers.ts",

@@ -352,5 +352,12 @@ export interface IBaseLocale {
     LANGUAGE_SETTINGS_DESC: string;
     DEBUG_LOG: string;
     COPY: string;
+
+    // review log & undo
+    UNDO_LAST_ANSWER: string;
+    NOTHING_TO_UNDO: string;
+    ENABLE_REVIEW_LOG: string;
+    ENABLE_REVIEW_LOG_DESC: string;
+
     NO_DECKS_TO_REVIEW: string;
 }
