@@ -13,12 +13,14 @@ import { Deck } from "src/data/data-structures/deck/deck";
 import { IDeckTreeIterator } from "src/data/data-structures/deck/deck-tree-iterator";
 import { TopicPath } from "src/data/data-structures/deck/topic-path";
 import { SRSettings } from "src/data/settings";
+import { t } from "src/lang/helpers";
 import { Note } from "src/note/note";
 import { ISRAlgorithm } from "src/scheduling/algorithms/base/isr-algorithm";
 import { RepItemScheduleInfo } from "src/scheduling/algorithms/base/rep-item-schedule-info";
 import { RepItemState, ReviewResponse } from "src/scheduling/algorithms/base/repetition-item";
 import { DailyReviewLimiter } from "src/scheduling/daily-review-limits";
 import { DueDateHistogram } from "src/scheduling/due-date-histogram";
+import { checkForLeech } from "src/scheduling/leech-detection";
 import { globalDateProvider } from "src/utils/dates";
 
 export interface IFlashcardReviewSequencer {
@@ -42,6 +44,7 @@ export interface IFlashcardReviewSequencer {
     updateCurrentQuestionTextAndCards(text: string): Promise<void>;
     deleteCurrentCardFromNote(): Promise<void>;
     setDailyReviewLimiter(limiter: DailyReviewLimiter | null): void;
+    suspendCurrentCard(): Promise<void>;
 }
 
 /**
@@ -297,6 +300,7 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
             //  (2) or reset a due card
             // Nothing to do if a user resets a new card
             this.currentCard.scheduleInfo = this.determineCardSchedule(response, this.currentCard);
+            this.applyLeechDetection(response, oldSchedule);
             shortTermRequeue = this.getShortTermRequeueMode(this.currentCard.scheduleInfo);
 
             // Update the source file with the updated schedule
@@ -311,6 +315,12 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
             this.dueDateFlashcardHistogram.increment(this.currentCard.scheduleInfo.interval);
         } else if (response === ReviewResponse.Reset) {
             shortTermRequeue = "immediate";
+        }
+
+        // A card suspended as a leech must not be requeued
+        if (this.currentCard.isSuspended) {
+            this.removeCurrentCardFromSession();
+            return;
         }
 
         if (shortTermRequeue === "pending") {
@@ -505,4 +515,44 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
     }
 
     // #endregion
+
+    /**
+     * Suspends the current card: the suspended marker is written to the note and the card is removed from
+     * this review session (and from the deck totals).
+     */
+    async suspendCurrentCard(): Promise<void> {
+        const card = this.currentCard;
+        if (!card) return;
+
+        card.isSuspended = true;
+        await DataStore.getInstance().writeSchedule(this.currentQuestion);
+        this.removeCurrentCardFromSession();
+        this.enforceDailyLimits();
+    }
+
+    private removeCurrentCardFromSession(): void {
+        const card = this.currentCard;
+        this._originalDeckTree.deleteCardFromAllDecks(card, false);
+        this.cardSequencer.deleteCurrentRepItemFromAllDecks();
+    }
+
+    /**
+     * Checks whether the latest review turned the current card into a leech, and if so shows a notice and
+     * (depending on the settings) marks the card as suspended. The caller is responsible for persisting the card.
+     */
+    private applyLeechDetection(
+        response: ReviewResponse,
+        oldSchedule: RepItemScheduleInfo | null,
+    ): void {
+        const card = this.currentCard;
+        const leech = checkForLeech(this.settings, response, oldSchedule, card.scheduleInfo);
+        if (!leech.isLeech) return;
+
+        if (leech.action === "suspend") {
+            card.isSuspended = true;
+            new Notice(t("LEECH_SUSPENDED", { lapses: leech.lapses }));
+        } else {
+            new Notice(t("LEECH_DETECTED", { lapses: leech.lapses }));
+        }
+    }
 }

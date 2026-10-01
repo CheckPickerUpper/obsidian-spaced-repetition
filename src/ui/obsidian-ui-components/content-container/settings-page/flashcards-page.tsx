@@ -1,7 +1,7 @@
 import { Notice, Setting, SettingGroup } from "obsidian";
 
 import { DataManager } from "src/data/data-manager";
-import { DEFAULT_SETTINGS } from "src/data/settings";
+import { DEFAULT_SETTINGS, LeechAction } from "src/data/settings";
 import { SettingsManager } from "src/data/settings-manager";
 import { t, tHTML } from "src/lang/helpers";
 import SRPlugin from "src/main";
@@ -192,6 +192,7 @@ export class FlashcardsPage extends SettingsPage {
             });
 
         this.addDailyLimitsSettings();
+        this.addLeechSettingsGroup();
 
         new SettingGroup(this.containerEl)
             .setHeading(t("GROUP_FLASHCARD_SEPARATORS"))
@@ -594,5 +595,65 @@ export class FlashcardsPage extends SettingsPage {
                     t("MAX_REVIEWS_PER_DAY_DESC"),
                 ),
             );
+    }
+
+    private addLeechSettingsGroup(): void {
+        new SettingGroup(this.containerEl)
+            .setHeading(t("GROUP_LEECHES"))
+            .addSetting((setting: Setting) => {
+                setting.setDesc(t("GROUP_LEECHES_DESC"));
+            })
+            .addSetting((setting: Setting) => {
+                setting
+                    .setName(t("LEECH_THRESHOLD"))
+                    .setDesc(t("LEECH_THRESHOLD_DESC"))
+                    .addExtraButton((button) => {
+                        button
+                            .setIcon("reset")
+                            .setTooltip(t("RESET_DEFAULT"))
+                            .onClick(async () => {
+                                this.settingsManager.settings.leechThreshold =
+                                    DEFAULT_SETTINGS.leechThreshold;
+                                await this.settingsManager.save();
+                                this.display();
+                            });
+                    })
+                    .addText((text) =>
+                        text
+                            .setValue(this.settingsManager.settings.leechThreshold.toString())
+                            .onChange((value) => {
+                                this.applySettingsUpdate(async () => {
+                                    const numValue = Number(value);
+                                    if (!Number.isInteger(numValue) || numValue < 0) {
+                                        new Notice(t("LEECH_THRESHOLD_WARNING"));
+                                        text.setValue(
+                                            this.settingsManager.settings.leechThreshold.toString(),
+                                        );
+                                        return;
+                                    }
+
+                                    this.settingsManager.settings.leechThreshold = numValue;
+                                    await this.settingsManager.save();
+                                });
+                            }),
+                    );
+            })
+            .addSetting((setting: Setting) => {
+                setting
+                    .setName(t("LEECH_ACTION"))
+                    .setDesc(t("LEECH_ACTION_DESC"))
+                    .addDropdown((dropdown) =>
+                        dropdown
+                            .addOptions({
+                                suspend: t("LEECH_ACTION_SUSPEND"),
+                                notice: t("LEECH_ACTION_NOTICE"),
+                            })
+                            .setValue(this.settingsManager.settings.leechAction)
+                            .onChange(async (value) => {
+                                this.settingsManager.settings.leechAction = value as LeechAction;
+                                await this.settingsManager.save();
+                            }),
+                    );
+            });
     }
 }

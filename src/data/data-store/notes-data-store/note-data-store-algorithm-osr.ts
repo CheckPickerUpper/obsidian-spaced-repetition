@@ -4,6 +4,7 @@ import { Card } from "src/data/data-structures/card/card";
 import { Question } from "src/data/data-structures/card/questions/question";
 import { SRSettings } from "src/data/settings";
 import { RepItemScheduleInfoOsr } from "src/scheduling/algorithms/osr/rep-item-schedule-info-osr";
+import { CommentParser } from "src/utils/comment-parser";
 
 // Algorithm: The original OSR algorithm
 //      (RZ: Perhaps not the original algorithm, but the only one available in 2023/early 2024)
@@ -38,11 +39,14 @@ export class NoteDataStoreAlgorithmOsr implements IDataStoreAlgorithm {
      * @returns {string} - The formatted card schedule.
      */
     formatCardSchedule(card: Card) {
+        let result: string;
         if (card.hasSchedule && card.scheduleInfo) {
-            return card.scheduleInfo.formatScheduleAsSRHtmlComment();
+            result = card.scheduleInfo.formatScheduleAsSRHtmlComment();
+        } else {
+            // TODO: Provide a default schedule for the FSRS algorithm
+            result = `!${RepItemScheduleInfoOsr.dummyDueDateForNewCard},${RepItemScheduleInfoOsr.initialInterval},${this.settings.baseEase}`;
         }
 
-        // TODO: Provide a default schedule for the FSRS algorithm
-        return `!${RepItemScheduleInfoOsr.dummyDueDateForNewCard},${RepItemScheduleInfoOsr.initialInterval},${this.settings.baseEase}`;
+        return card.isSuspended ? CommentParser.appendSuspendedMarker(result) : result;
     }
 }

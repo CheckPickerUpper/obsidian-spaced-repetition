@@ -42,6 +42,22 @@ export interface IBaseLocale {
     REVIEW_ALL_CARDS: string;
     REVIEW_CARDS_IN_NOTE: string;
     CRAM_CARDS_IN_NOTE: string;
+    // card suspension & leeches
+    SUSPEND_CARD: string;
+    CARD_SUSPENDED: string;
+    UNSUSPEND_CARDS_IN_NOTE: string;
+    CARDS_UNSUSPENDED_IN_NOTE: string;
+    LEECH_DETECTED: string;
+    LEECH_SUSPENDED: string;
+    GROUP_LEECHES: string;
+    GROUP_LEECHES_DESC: string;
+    LEECH_THRESHOLD: string;
+    LEECH_THRESHOLD_DESC: string;
+    LEECH_THRESHOLD_WARNING: string;
+    LEECH_ACTION: string;
+    LEECH_ACTION_DESC: string;
+    LEECH_ACTION_SUSPEND: string;
+    LEECH_ACTION_NOTICE: string;
     VIEW_STATS: string;
     OPEN_REVIEW_QUEUE_VIEW: string;
     STATUS_BAR: string;

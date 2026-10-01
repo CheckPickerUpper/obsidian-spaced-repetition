@@ -119,6 +119,7 @@ export default class ContentManager {
             this.settings,
             parentEl,
             this._deleteCurrentCard.bind(this),
+            this._suspendCurrentCard.bind(this),
             this._showDecksList.bind(this),
             this._doEditQuestionText.bind(this),
             this._processReview.bind(this),
@@ -346,6 +347,15 @@ export default class ContentManager {
                 await this._showNextCard();
             },
         ).open();
+    }
+
+    public async _suspendCurrentCard(): Promise<void> {
+        if (this.sessionData === null || this.reviewSequencer === null) return;
+        if (!this.reviewSequencer.hasCurrentCard) return;
+
+        await this.reviewSequencer.suspendCurrentCard();
+        new Notice(t("CARD_SUSPENDED"));
+        await this._showNextCard();
     }
 
     public async _showAnswer() {
