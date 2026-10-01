@@ -27,6 +27,12 @@ export interface IQuestionPostponementList {
      */
     includes(question: Question): boolean;
     /**
+     * Removes a question from the list of postponed questions (e.g. when undoing a review).
+     *
+     * @param {Question} question - The question to remove.
+     */
+    remove(question: Question): void;
+    /**
      * Writes the list of postponed questions to the plugin data.
      *
      * @returns {Promise<void>} - A promise that resolves when the list is written.
@@ -94,6 +100,16 @@ export class QuestionPostponementList implements IQuestionPostponementList {
      */
     includes(question: Question): boolean {
         return this.list.includes(question.questionText.textHash);
+    }
+
+    /**
+     * Removes a question from the list of postponed questions.
+     *
+     * @param {Question} question - The question to remove.
+     */
+    remove(question: Question): void {
+        const idx: number = this.list.indexOf(question.questionText.textHash);
+        if (idx !== -1) this.list.splice(idx, 1);
     }
 
     /**

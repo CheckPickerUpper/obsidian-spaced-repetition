@@ -218,6 +218,22 @@ Q2::A2
         expect(sequencer.getDeckStats(TopicPath.emptyPath).totalCount).toEqual(1);
     });
 
+    test("Undo of the review un-suspends the leech", async () => {
+        const settings: SRSettings = { ...DEFAULT_SETTINGS, leechThreshold: 8 };
+        const { file, sequencer } = await createSequencer(text, settings);
+        jest.spyOn(sequencer, "determineCardSchedule").mockReturnValue(fsrsSchedule(8));
+        const card = sequencer.currentCard;
+
+        await sequencer.processReview(ReviewResponse.Again);
+        expect(card.isSuspended).toEqual(true);
+
+        expect(await sequencer.undoLastReview()).toEqual(true);
+        expect(card.isSuspended).toEqual(false);
+        expect(file.content).not.toContain("suspended");
+        expect(sequencer.currentCard).toBe(card);
+        expect(sequencer.getDeckStats(TopicPath.emptyPath).totalCount).toEqual(2);
+    });
+
     test("Notice-only action keeps the card in review", async () => {
         const settings: SRSettings = {
             ...DEFAULT_SETTINGS,

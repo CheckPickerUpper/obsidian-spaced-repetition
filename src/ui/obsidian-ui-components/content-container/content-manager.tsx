@@ -88,6 +88,7 @@ export default class ContentManager {
 
     private lastPressedOnProcessReview: number = 0;
     private pendingResumeTimeout: number | null = null;
+    private undoInProgress: boolean = false;
 
     constructor(
         app: App,
@@ -127,6 +128,7 @@ export default class ContentManager {
             this._showAnswer.bind(this),
             this._jumpToCurrentCard.bind(this),
             this._displayCurrentCardInfoNotice.bind(this),
+            this._undoLastAnswer.bind(this),
             closeModal,
         );
     }
@@ -199,6 +201,7 @@ export default class ContentManager {
         if (this.sessionData === null) return;
         this.uiManager.setUIState(UIState.CardFront);
         await this.cardContainer.openSession(this.sessionData, this.settings);
+        this._onCardShown();
     }
 
     private async _showNextCard(): Promise<void> {
@@ -255,9 +258,19 @@ export default class ContentManager {
             this.sessionData.cardData.currentCard !== undefined
         ) {
             await this.cardContainer.drawCardFront(this.sessionData, this.settings);
+            this._onCardShown();
         } else {
             await this._showDecksList(true);
         }
+    }
+
+    /**
+     * Called once the front of a card has been shown to the user.
+     */
+    private _onCardShown(): void {
+        if (this.reviewSequencer === null) return;
+        this.reviewSequencer.markCurrentCardShown();
+        this.cardContainer.setUndoAvailable(this.reviewSequencer.canUndo);
     }
 
     private async _showPendingState(): Promise<void> {
@@ -499,6 +512,34 @@ export default class ContentManager {
 
         await this.reviewSequencer.processReview(response);
         await this._showNextCard();
+    }
+
+    /**
+     * Whether there is an answer in the current review session that can be undone.
+     */
+    public get canUndo(): boolean {
+        return this.reviewSequencer !== null && this.reviewSequencer.canUndo;
+    }
+
+    /**
+     * Undoes the last answer: restores the previous schedule of the card and shows it again.
+     */
+    public async _undoLastAnswer(): Promise<void> {
+        // Prevents undoing twice if e.g. both the view's key handler and a command hotkey fire
+        if (this.reviewSequencer === null || this.sessionData === null || this.undoInProgress)
+            return;
+        if (!this.reviewSequencer.canUndo) {
+            new Notice(t("NOTHING_TO_UNDO"));
+            return;
+        }
+
+        this.undoInProgress = true;
+        try {
+            await this.reviewSequencer.undoLastReview();
+            await this._showNextCard();
+        } finally {
+            this.undoInProgress = false;
+        }
     }
 
     // MARK: Deck button handlers

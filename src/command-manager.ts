@@ -451,6 +451,27 @@ export class CommandManager {
         });
 
         this.plugin.addCommand({
+            id: "srs-card-review-undo",
+            name: t("UNDO_LAST_ANSWER"),
+            repeatable: false,
+            checkCallback: (checking: boolean) => {
+                if (
+                    this.plugin.isInitialized &&
+                    (this.uiManager.uiState === UIState.CardBack ||
+                        this.uiManager.uiState === UIState.CardFront) &&
+                    this.uiManager.contentManager !== null &&
+                    this.uiManager.contentManager.canUndo
+                ) {
+                    if (!checking) {
+                        void this.uiManager.contentManager._undoLastAnswer();
+                    }
+                    return true;
+                }
+                return false;
+            },
+        });
+
+        this.plugin.addCommand({
             id: "srs-open-review-queue-view",
             name: t("OPEN_REVIEW_QUEUE_VIEW"),
             callback: async () => {

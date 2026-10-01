@@ -102,6 +102,7 @@ export class ReviewQueueLoader {
             SRAlgorithm.getInstance(),
             this.plugin.dataManager.osrCore.questionPostponementList,
             this.plugin.dataManager.osrCore.dueDateFlashcardHistogram,
+            this.plugin.dataManager.reviewLog,
         );
 
         reviewSequencer.setDeckTree(fullDeckTree, remainingDeckTree);

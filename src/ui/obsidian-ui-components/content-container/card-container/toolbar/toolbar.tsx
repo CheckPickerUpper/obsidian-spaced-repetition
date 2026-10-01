@@ -9,6 +9,7 @@ import CardMenuButtonComponent from "src/ui/obsidian-ui-components/content-conta
 import EditButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/toolbar/toolbar-buttons/edit-button";
 import ResetButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/toolbar/toolbar-buttons/reset-button";
 import SkipButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/toolbar/toolbar-buttons/skip-button";
+import UndoButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/toolbar/toolbar-buttons/undo-button";
 import ModalCloseButtonComponent from "src/ui/obsidian-ui-components/content-container/modal-close-button";
 import EmulatedPlatform from "src/utils/platform-detector";
 
@@ -16,6 +17,7 @@ export default class CardToolbarComponent {
     private toolbar: HTMLDivElement;
     private infoSection: DeckInfoComponent;
     private resetButton: ResetButtonComponent;
+    private undoButton: UndoButtonComponent;
     private extendedMenuButton: CardMenuButtonComponent;
     private shortMenuButton: CardMenuButtonComponent;
 
@@ -30,6 +32,7 @@ export default class CardToolbarComponent {
         displayCurrentCardInfoNotice: () => void,
         skipCurrentCard: () => void,
         onOpenResetModalClick: () => void,
+        undoLastAnswer: () => void,
         closeModal?: () => void,
     ) {
         // Build ui
@@ -50,6 +53,13 @@ export default class CardToolbarComponent {
         this.infoSection = new DeckInfoComponent(this.toolbar);
 
         this.toolbar.createDiv().addClass("sr-flex-spacer");
+
+        this.undoButton = new UndoButtonComponent(
+            this.toolbar,
+            undoLastAnswer,
+            EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : ["clickable-icon"],
+        );
+        this.undoButton.setUndoDisabled(true);
 
         new EditButtonComponent(
             this.toolbar,
@@ -152,6 +162,14 @@ export default class CardToolbarComponent {
             currentDeckTotalCardsInQueue - currentDeckStats.cardsInQueueOfThisDeckCount,
             flashcardCardOrder === "EveryCardRandomDeckAndCard",
         );
+    }
+
+    /**
+     * Sets the undo button disabled state
+     * @param disabled - The disabled state
+     */
+    public setUndoButtonDisabled(disabled: boolean) {
+        this.undoButton.setUndoDisabled(disabled);
     }
 
     /**

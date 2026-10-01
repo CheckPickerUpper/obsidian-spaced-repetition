@@ -168,6 +168,23 @@ export class DailyReviewLimiter {
     }
 
     /**
+     * Reverts {@link recordReview} for the card (e.g. when the review is undone).
+     * Must be called after the card's previous schedule has been restored, so new cards can be identified.
+     *
+     * @param {Card} card - The card.
+     */
+    async unrecordReview(card: Card): Promise<void> {
+        if (!card || !this.countedThisSession.has(card)) return;
+        const counts: IDailyReviewCounts = this.counts;
+
+        this.countedThisSession.delete(card);
+        if (card.isNew) counts.newCards = Math.max(0, counts.newCards - 1);
+        else counts.reviews = Math.max(0, counts.reviews - 1);
+
+        if (this.save) await this.save();
+    }
+
+    /**
      * Calculates the number of (distinct) new & due cards within the deck that fit in the remaining budget.
      *
      * @param {Deck} deck - The deck.

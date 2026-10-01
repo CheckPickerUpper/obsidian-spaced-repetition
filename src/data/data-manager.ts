@@ -11,6 +11,8 @@ import { TopicPath } from "src/data/data-structures/deck/topic-path";
 import { ISRNoteTFile, SRNoteTFile } from "src/data/data-structures/file/note-file";
 import { PluginData } from "src/data/plugin-data";
 import { PluginDataManager } from "src/data/plugin-data-manager";
+import { ReviewLog } from "src/data/review-log/review-log";
+import { ReviewLogVaultStorage } from "src/data/review-log/review-log-vault-storage";
 import { SettingsUtil, SRSettings } from "src/data/settings";
 import { SettingsManager } from "src/data/settings-manager";
 import { t } from "src/lang/helpers";
@@ -36,6 +38,7 @@ export class DataManager {
     public settingsManager: SettingsManager; // TODO: Refactor so that the plugin data manager and the settings manager are separate from the data manager
     private _osrCore: OsrCore | null = null;
     private _syncLock = false;
+    private _reviewLog: ReviewLog | null = null;
 
     constructor(
         plugin: SRPlugin,
@@ -81,6 +84,19 @@ export class DataManager {
 
     get syncLock(): boolean {
         return this._syncLock;
+    }
+
+    /**
+     * The persistent log of all flashcard reviews (stored in the vault).
+     */
+    get reviewLog(): ReviewLog {
+        if (this._reviewLog === null) {
+            this._reviewLog = new ReviewLog(
+                new ReviewLogVaultStorage(this.plugin.app.vault),
+                () => this.settingsManager.settings.scheduleDataVaultLocation,
+            );
+        }
+        return this._reviewLog;
     }
 
     /**
@@ -137,6 +153,9 @@ export class DataManager {
                     )
                 )
                     continue;
+
+                // Skip the review log files
+                if (this.reviewLog.isReviewLogFile(noteFile.path)) continue;
 
                 const file: SRNoteTFile = this.createSRNoteTFile(noteFile);
                 await this.osrCore.processFile(file);
