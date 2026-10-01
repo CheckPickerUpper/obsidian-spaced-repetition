@@ -17,6 +17,7 @@ import { Note } from "src/note/note";
 import { ISRAlgorithm } from "src/scheduling/algorithms/base/isr-algorithm";
 import { RepItemScheduleInfo } from "src/scheduling/algorithms/base/rep-item-schedule-info";
 import { RepItemState, ReviewResponse } from "src/scheduling/algorithms/base/repetition-item";
+import { DailyReviewLimiter } from "src/scheduling/daily-review-limits";
 import { DueDateHistogram } from "src/scheduling/due-date-histogram";
 import { globalDateProvider } from "src/utils/dates";
 
@@ -40,6 +41,7 @@ export interface IFlashcardReviewSequencer {
     processReview(response: ReviewResponse): Promise<void>;
     updateCurrentQuestionTextAndCards(text: string): Promise<void>;
     deleteCurrentCardFromNote(): Promise<void>;
+    setDailyReviewLimiter(limiter: DailyReviewLimiter | null): void;
 }
 
 /**
@@ -125,6 +127,8 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
     private dueDateFlashcardHistogram: DueDateHistogram;
     private pendingCards: PendingCard[] = [];
     private currentTopicPath: TopicPath = TopicPath.emptyPath;
+    // Enforces the daily new card / review limits (null = unlimited, e.g. cram mode)
+    private dailyReviewLimiter: DailyReviewLimiter | null = null;
 
     constructor(
         reviewMode: FlashcardReviewMode,
@@ -192,6 +196,7 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         this.wakeDuePendingCards();
         this.cardSequencer.setIteratorTopicPath(topicPath);
         this.cardSequencer.nextRepItem();
+        this.enforceDailyLimits();
     }
 
     refreshCurrentDeck(): void {
@@ -208,18 +213,13 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
             .getDeck(topicPath)
             .getDistinctRepItemCount(RepItemState.AnyItem, true);
         const remainingDeck: Deck = this.remainingDeckTree.getDeck(topicPath);
-        const newCount: number = remainingDeck.getDistinctRepItemCount(RepItemState.NewItem, true);
-        const dueCount: number = remainingDeck.getDistinctRepItemCount(RepItemState.DueItem, true);
+        const { newCount, dueCount } = this.getQueueCounts(remainingDeck, true);
 
         // Sry for the long variable names, but I needed all these distinct counts in the UI
-        const newCardsInQueueOfThisDeckCount = remainingDeck.getDistinctRepItemCount(
-            RepItemState.NewItem,
-            false,
-        );
-        const dueCardsInQueueOfThisDeckCount = remainingDeck.getDistinctRepItemCount(
-            RepItemState.DueItem,
-            false,
-        );
+        const {
+            newCount: newCardsInQueueOfThisDeckCount,
+            dueCount: dueCardsInQueueOfThisDeckCount,
+        } = this.getQueueCounts(remainingDeck, false);
         const cardsInQueueOfThisDeckCount =
             newCardsInQueueOfThisDeckCount + dueCardsInQueueOfThisDeckCount;
 
@@ -252,8 +252,7 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
                 this.getSubDecksWithCardsInQueue(subDeck),
             );
 
-            const newCount: number = subDeck.getDistinctRepItemCount(RepItemState.NewItem, false);
-            const dueCount: number = subDeck.getDistinctRepItemCount(RepItemState.DueItem, false);
+            const { newCount, dueCount } = this.getQueueCounts(subDeck, false);
             if (newCount + dueCount > 0) subDecksWithCardsInQueue.push(subDeck);
         });
 
@@ -262,6 +261,7 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
 
     skipCurrentCard(): void {
         this.cardSequencer.deleteCurrentQuestionFromAllDecks();
+        this.enforceDailyLimits();
     }
 
     private deleteCurrentCard(): void {
@@ -278,9 +278,16 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
                 this.processReviewCramMode(response);
                 break;
         }
+        this.enforceDailyLimits();
     }
 
     async processReviewReviewMode(response: ReviewResponse): Promise<void> {
+        // Count against the daily limits (before the schedule changes, so new cards can be identified)
+        if (
+            this.dailyReviewLimiter &&
+            (response !== ReviewResponse.Reset || this.currentCard.hasSchedule)
+        )
+            await this.dailyReviewLimiter.recordReview(this.currentCard);
         let shortTermRequeue: "none" | "immediate" | "pending" = "none";
         if (response !== ReviewResponse.Reset || this.currentCard.hasSchedule) {
             const oldSchedule = this.currentCard.scheduleInfo;
@@ -457,5 +464,45 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         await DataStore.getInstance().delete(question);
         this._originalDeckTree.deleteQuestionFromAllDecks(question, false);
         this.cardSequencer.deleteCurrentQuestionFromAllDecks();
+        this.enforceDailyLimits();
     }
+
+    // #region Daily limits
+
+    setDailyReviewLimiter(limiter: DailyReviewLimiter | null): void {
+        this.dailyReviewLimiter = limiter;
+        if (this._originalDeckTree) this.enforceDailyLimits();
+    }
+
+    private get isDailyLimitActive(): boolean {
+        return this.dailyReviewLimiter !== null && this.reviewMode === FlashcardReviewMode.Review;
+    }
+
+    /**
+     * Gets the distinct new/due counts of the deck, limited to the remaining daily budget (if any).
+     */
+    private getQueueCounts(
+        deck: Deck,
+        includeSubdecks: boolean,
+    ): { newCount: number; dueCount: number } {
+        if (this.isDailyLimitActive) {
+            return this.dailyReviewLimiter.getLimitedCounts(deck, includeSubdecks);
+        }
+        return {
+            newCount: deck.getDistinctRepItemCount(RepItemState.NewItem, includeSubdecks),
+            dueCount: deck.getDistinctRepItemCount(RepItemState.DueItem, includeSubdecks),
+        };
+    }
+
+    /**
+     * Removes cards from the queue (for the rest of this session) while the current card exceeds the daily budget.
+     */
+    private enforceDailyLimits(): void {
+        if (!this.isDailyLimitActive) return;
+        while (this.hasCurrentCard && !this.dailyReviewLimiter.isAllowed(this.currentCard)) {
+            this.cardSequencer.deleteCurrentRepItemFromAllDecks();
+        }
+    }
+
+    // #endregion
 }
