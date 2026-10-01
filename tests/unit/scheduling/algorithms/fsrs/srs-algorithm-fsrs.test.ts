@@ -95,6 +95,82 @@ test("delegates note scheduling to OSR and keeps existing FSRS schedules in FSRS
     ).toBeInstanceOf(RepItemScheduleInfoFsrs);
 });
 
+test("uses the configured learning and relearning steps", () => {
+    const algorithm = new SrsAlgorithmFsrs({
+        ...DEFAULT_SETTINGS,
+        fsrsLearningSteps: "3m 2h",
+        fsrsRelearningSteps: "30m",
+    });
+
+    const learning = algorithm.cardGetNewSchedule(
+        ReviewResponse.Again,
+        "note.md",
+        new CardDueDateHistogram(),
+    ) as RepItemScheduleInfoFsrs;
+    expect(learning.state).toEqual(State.Learning);
+    expect(learning.dueDate.diff(moment("2023-09-06T00:00:00.000Z"), "minutes")).toEqual(3);
+
+    const learningGood = algorithm.cardGetNewSchedule(
+        ReviewResponse.Good,
+        "note.md",
+        new CardDueDateHistogram(),
+    ) as RepItemScheduleInfoFsrs;
+    expect(learningGood.state).toEqual(State.Learning);
+    expect(learningGood.dueDate.diff(moment("2023-09-06T00:00:00.000Z"), "minutes")).toEqual(120);
+
+    const reviewCard = new RepItemScheduleInfoFsrs(
+        moment("2023-09-06T00:00:00.000Z"),
+        10,
+        5,
+        10,
+        State.Review,
+        5,
+        0,
+        0,
+        moment("2023-08-27T00:00:00.000Z"),
+    );
+    const relearning = algorithm.cardCalcUpdatedSchedule(
+        ReviewResponse.Again,
+        reviewCard,
+        new CardDueDateHistogram(),
+    ) as RepItemScheduleInfoFsrs;
+    expect(relearning.state).toEqual(State.Relearning);
+    expect(relearning.dueDate.diff(moment("2023-09-06T00:00:00.000Z"), "minutes")).toEqual(30);
+});
+
+test("FSRS fuzz is deterministic for the same review and only changes long intervals", () => {
+    const reviewCard = () =>
+        new RepItemScheduleInfoFsrs(
+            moment("2023-09-06T00:00:00.000Z"),
+            30,
+            5,
+            30,
+            State.Review,
+            8,
+            0,
+            0,
+            moment("2023-08-07T00:00:00.000Z"),
+        );
+    const review = (fsrsEnableFuzz: boolean) =>
+        new SrsAlgorithmFsrs({ ...DEFAULT_SETTINGS, fsrsEnableFuzz }).cardCalcUpdatedSchedule(
+            ReviewResponse.Good,
+            reviewCard(),
+            new CardDueDateHistogram(),
+        );
+
+    const fuzzed1 = review(true);
+    const fuzzed2 = review(true);
+    const unfuzzed = review(false);
+
+    // ts-fsrs seeds its fuzz from the review time and card state, so it is reproducible.
+    expect(fuzzed1.interval).toEqual(fuzzed2.interval);
+    expect(fuzzed1.interval).not.toEqual(unfuzzed.interval);
+    // Fuzz stays within a small fraction of the unfuzzed interval.
+    expect(Math.abs(fuzzed1.interval - unfuzzed.interval)).toBeLessThanOrEqual(
+        Math.ceil(unfuzzed.interval * 0.15) + 1,
+    );
+});
+
 test("CardDueDateHistogram setter updates the due-now count", () => {
     const histogram = new CardDueDateHistogram();
     histogram.set(CardDueDateHistogram.dueNowNDays, 2);

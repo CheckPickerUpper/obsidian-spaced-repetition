@@ -196,6 +196,13 @@ export interface IBaseLocale {
     SM2_OSR_VARIANT: string;
     SWITCH_TO_FSRS_ALGORITHM: string;
     CONFIRM_FSRS_ALGORITHM_SWITCH: string;
+    FSRS_ENABLE_FUZZ: string;
+    FSRS_ENABLE_FUZZ_DESC: string;
+    FSRS_LEARNING_STEPS: string;
+    FSRS_LEARNING_STEPS_DESC: string;
+    FSRS_RELEARNING_STEPS: string;
+    FSRS_RELEARNING_STEPS_DESC: string;
+    FSRS_STEPS_INVALID: string;
     BASE_EASE: string;
     BASE_EASE_DESC: string;
     BASE_EASE_MIN_WARNING: string;

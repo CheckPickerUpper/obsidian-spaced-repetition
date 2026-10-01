@@ -6,6 +6,7 @@ import { SettingsManager } from "src/data/settings-manager";
 import { t, tHTML } from "src/lang/helpers";
 import SRPlugin from "src/main";
 import { SRAlgorithmType } from "src/scheduling/algorithms/base/isr-algorithm";
+import { formatFsrsSteps, parseFsrsSteps } from "src/scheduling/algorithms/fsrs/fsrs-helpers";
 import { SettingsPage } from "src/ui/obsidian-ui-components/content-container/settings-page/settings-page";
 import { SettingsPageType } from "src/ui/obsidian-ui-components/content-container/settings-page/settings-page-manager";
 import { ConfirmationModal } from "src/ui/obsidian-ui-components/modals/confirmation-modal";
@@ -23,6 +24,55 @@ export class SchedulingPage extends SettingsPage {
         await this.settingsManager.save();
         this.dataManager.setupDataStoreAndAlgorithmInstances(this.settingsManager.settings);
         this.display();
+    }
+
+    /**
+     * Adds a text setting for FSRS (re)learning steps. The value is only saved while it is valid;
+     * an invalid value is reported and reverted once the input loses focus, so partially typed
+     * values (e.g. "1") are not rejected on every keystroke.
+     */
+    private addFsrsStepsSetting(
+        group: SettingGroup,
+        key: "fsrsLearningSteps" | "fsrsRelearningSteps",
+        name: string,
+        desc: string,
+    ): void {
+        group.addSetting((setting: Setting) => {
+            setting
+                .setName(name)
+                .setDesc(desc)
+                .addExtraButton((button) => {
+                    button
+                        .setIcon("reset")
+                        .setTooltip(t("RESET_DEFAULT"))
+                        .onClick(async () => {
+                            this.settingsManager.settings[key] = DEFAULT_SETTINGS[key];
+                            await this.settingsManager.save();
+                            this.display();
+                        });
+                })
+                .addText((text) => {
+                    text.setPlaceholder(DEFAULT_SETTINGS[key])
+                        .setValue(this.settingsManager.settings[key])
+                        .onChange((value) => {
+                            const steps = parseFsrsSteps(value);
+                            if (steps === null) {
+                                return;
+                            }
+
+                            this.applySettingsUpdate(async () => {
+                                this.settingsManager.settings[key] = formatFsrsSteps(steps);
+                                await this.settingsManager.save();
+                            });
+                        });
+                    text.inputEl.addEventListener("blur", () => {
+                        if (parseFsrsSteps(text.getValue()) === null) {
+                            new Notice(t("FSRS_STEPS_INVALID"));
+                            text.setValue(this.settingsManager.settings[key]);
+                        }
+                    });
+                });
+        });
     }
 
     constructor(
@@ -304,6 +354,33 @@ export class SchedulingPage extends SettingsPage {
                             }),
                     );
             });
+
+            algorithmGroup.addSetting((setting: Setting) => {
+                setting
+                    .setName(t("FSRS_ENABLE_FUZZ"))
+                    .setDesc(t("FSRS_ENABLE_FUZZ_DESC"))
+                    .addToggle((toggle) =>
+                        toggle
+                            .setValue(this.settingsManager.settings.fsrsEnableFuzz)
+                            .onChange(async (value) => {
+                                this.settingsManager.settings.fsrsEnableFuzz = value;
+                                await this.settingsManager.save();
+                            }),
+                    );
+            });
+
+            this.addFsrsStepsSetting(
+                algorithmGroup,
+                "fsrsLearningSteps",
+                t("FSRS_LEARNING_STEPS"),
+                t("FSRS_LEARNING_STEPS_DESC"),
+            );
+            this.addFsrsStepsSetting(
+                algorithmGroup,
+                "fsrsRelearningSteps",
+                t("FSRS_RELEARNING_STEPS"),
+                t("FSRS_RELEARNING_STEPS_DESC"),
+            );
         }
 
         if (this.settingsManager.settings.algorithm === SRAlgorithmType.SM_2_OSR) {
