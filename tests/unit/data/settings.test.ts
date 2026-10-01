@@ -242,6 +242,32 @@ describe("SettingsUtil", () => {
 
         settings = {
             ...DEFAULT_SETTINGS,
+            fsrsEnableFuzz: undefined,
+            fsrsLearningSteps: undefined,
+            fsrsRelearningSteps: null,
+        };
+        upgradeSettings(settings);
+        expect(settings).toMatchObject({
+            fsrsEnableFuzz: true,
+            fsrsLearningSteps: "1m 10m",
+            fsrsRelearningSteps: "10m",
+        });
+
+        settings = {
+            ...DEFAULT_SETTINGS,
+            fsrsEnableFuzz: false,
+            fsrsLearningSteps: "5m 1h",
+            fsrsRelearningSteps: "",
+        };
+        upgradeSettings(settings);
+        expect(settings).toMatchObject({
+            fsrsEnableFuzz: false,
+            fsrsLearningSteps: "5m 1h",
+            fsrsRelearningSteps: "",
+        });
+
+        settings = {
+            ...DEFAULT_SETTINGS,
             enableReviewReminders: undefined,
             reviewReminderIntervalMinutes: 0,
             reviewReminderCheckOnStartup: undefined,

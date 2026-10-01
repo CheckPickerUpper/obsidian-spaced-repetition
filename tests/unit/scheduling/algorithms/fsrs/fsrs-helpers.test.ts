@@ -1,4 +1,9 @@
-import { Rating, State } from "ts-fsrs";
+import {
+    default_learning_steps as defaultLearningSteps,
+    default_relearning_steps as defaultRelearningSteps,
+    Rating,
+    State,
+} from "ts-fsrs";
 
 import { DEFAULT_SETTINGS } from "src/data/settings";
 import { ReviewResponse } from "src/scheduling/algorithms/base/repetition-item";
@@ -6,8 +11,11 @@ import {
     buildFsrsParameters,
     difficultyToEase,
     easeToDifficulty,
+    formatFsrsSteps,
     formatFsrsTimestamp,
     FSRS_COMMENT_PREFIX,
+    parseFsrsSteps,
+    parseFsrsStepsOrDefault,
     parseFsrsTimestamp,
     reviewResponseToFsrsGrade,
     sm2ScheduleToFsrsCard,
@@ -24,7 +32,98 @@ test("buildFsrsParameters", () => {
         ["request_retention"]: DEFAULT_SETTINGS.fsrsDesiredRetention,
         ["maximum_interval"]: DEFAULT_SETTINGS.maximumInterval,
         ["enable_short_term"]: true,
+        ["enable_fuzz"]: true,
+        ["learning_steps"]: ["1m", "10m"],
+        ["relearning_steps"]: ["10m"],
     });
+});
+
+test("buildFsrsParameters passes through fuzz and step settings", () => {
+    expect(
+        buildFsrsParameters({
+            ...DEFAULT_SETTINGS,
+            fsrsEnableFuzz: false,
+            fsrsLearningSteps: "5m 1h 1d",
+            fsrsRelearningSteps: "",
+        }),
+    ).toMatchObject({
+        ["enable_fuzz"]: false,
+        ["learning_steps"]: ["5m", "1h", "1d"],
+        ["relearning_steps"]: [],
+    });
+});
+
+test("buildFsrsParameters falls back to defaults for invalid or missing steps", () => {
+    expect(
+        buildFsrsParameters({
+            ...DEFAULT_SETTINGS,
+            fsrsEnableFuzz: undefined,
+            fsrsLearningSteps: "1x 10m",
+            fsrsRelearningSteps: undefined,
+        }),
+    ).toMatchObject({
+        ["enable_fuzz"]: true,
+        ["learning_steps"]: [...defaultLearningSteps],
+        ["relearning_steps"]: [...defaultRelearningSteps],
+    });
+});
+
+test("default step settings match ts-fsrs defaults", () => {
+    expect(parseFsrsSteps(DEFAULT_SETTINGS.fsrsLearningSteps)).toEqual([...defaultLearningSteps]);
+    expect(parseFsrsSteps(DEFAULT_SETTINGS.fsrsRelearningSteps)).toEqual([
+        ...defaultRelearningSteps,
+    ]);
+});
+
+describe("parseFsrsSteps", () => {
+    test.each([
+        ["1m 10m", ["1m", "10m"]],
+        ["  1m   10m  ", ["1m", "10m"]],
+        ["1m,10m", ["1m", "10m"]],
+        ["1m, 1h, 2d", ["1m", "1h", "2d"]],
+        ["15M 2H 3D", ["15m", "2h", "3d"]],
+        ["10 m 1 h", ["10m", "1h"]],
+        ["010m", ["10m"]],
+        ["", []],
+        ["   ", []],
+    ])("parses %p", (input, expected) => {
+        expect(parseFsrsSteps(input)).toEqual(expected);
+    });
+
+    test.each([
+        "1",
+        "m",
+        "10",
+        "0m",
+        "-1m",
+        "1.5h",
+        "1w",
+        "1m 10",
+        "1m; 10m",
+        "abc",
+        "1mm",
+        "99999999999999999999m",
+    ])("rejects %p", (input) => {
+        expect(parseFsrsSteps(input)).toBeNull();
+    });
+
+    test("rejects non-string input", () => {
+        expect(parseFsrsSteps(undefined as unknown as string)).toBeNull();
+        expect(parseFsrsSteps(10 as unknown as string)).toBeNull();
+    });
+});
+
+test("parseFsrsStepsOrDefault", () => {
+    expect(parseFsrsStepsOrDefault("2m", ["1m"])).toEqual(["2m"]);
+    expect(parseFsrsStepsOrDefault("", ["1m"])).toEqual([]);
+    expect(parseFsrsStepsOrDefault("bad", ["1m"])).toEqual(["1m"]);
+    expect(parseFsrsStepsOrDefault(null, ["1m"])).toEqual(["1m"]);
+    expect(parseFsrsStepsOrDefault(undefined, ["1m"])).toEqual(["1m"]);
+});
+
+test("formatFsrsSteps", () => {
+    expect(formatFsrsSteps(["1m", "10m"])).toEqual("1m 10m");
+    expect(formatFsrsSteps([])).toEqual("");
 });
 
 test("reviewResponseToFsrsGrade", () => {

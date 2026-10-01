@@ -80,6 +80,9 @@ export interface SRSettings {
     maximumInterval: number;
     maxLinkFactor: number;
     fsrsDesiredRetention: number;
+    fsrsEnableFuzz: boolean;
+    fsrsLearningSteps: string;
+    fsrsRelearningSteps: string;
     startOfDay: string;
 
     // storage
@@ -170,6 +173,10 @@ export const DEFAULT_SETTINGS: SRSettings = {
     maximumInterval: 36525,
     maxLinkFactor: 1.0,
     fsrsDesiredRetention: 0.9,
+    fsrsEnableFuzz: true,
+    // Keep in sync with ts-fsrs default_learning_steps / default_relearning_steps.
+    fsrsLearningSteps: "1m 10m",
+    fsrsRelearningSteps: "10m",
     startOfDay: "00:00:00",
 
     // storage
@@ -235,6 +242,18 @@ export function upgradeSettings(settings: SRSettings) {
 
     if (settings.fsrsDesiredRetention === null || settings.fsrsDesiredRetention === undefined) {
         settings.fsrsDesiredRetention = DEFAULT_SETTINGS.fsrsDesiredRetention;
+    }
+
+    if (settings.fsrsEnableFuzz === null || settings.fsrsEnableFuzz === undefined) {
+        settings.fsrsEnableFuzz = DEFAULT_SETTINGS.fsrsEnableFuzz;
+    }
+
+    if (typeof settings.fsrsLearningSteps !== "string") {
+        settings.fsrsLearningSteps = DEFAULT_SETTINGS.fsrsLearningSteps;
+    }
+
+    if (typeof settings.fsrsRelearningSteps !== "string") {
+        settings.fsrsRelearningSteps = DEFAULT_SETTINGS.fsrsRelearningSteps;
     }
 
     // Only published reminder settings are upgraded here. We deliberately do not preserve

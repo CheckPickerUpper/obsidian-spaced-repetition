@@ -1,5 +1,14 @@
 import moment, { Moment } from "moment";
-import { CardInput, FSRSParameters, Grade, Rating, State } from "ts-fsrs";
+import {
+    CardInput,
+    default_learning_steps as defaultLearningSteps,
+    default_relearning_steps as defaultRelearningSteps,
+    FSRSParameters,
+    Grade,
+    Rating,
+    State,
+    StepUnit,
+} from "ts-fsrs";
 
 import { SRSettings } from "src/data/settings";
 import { RepItemScheduleInfo } from "src/scheduling/algorithms/base/rep-item-schedule-info";
@@ -21,7 +30,89 @@ export function buildFsrsParameters(settings: SRSettings): Partial<FSRSParameter
         ["request_retention"]: settings.fsrsDesiredRetention,
         ["maximum_interval"]: settings.maximumInterval,
         ["enable_short_term"]: true,
+        ["enable_fuzz"]: settings.fsrsEnableFuzz ?? true,
+        ["learning_steps"]: parseFsrsStepsOrDefault(
+            settings.fsrsLearningSteps,
+            defaultLearningSteps,
+        ),
+        ["relearning_steps"]: parseFsrsStepsOrDefault(
+            settings.fsrsRelearningSteps,
+            defaultRelearningSteps,
+        ),
     };
+}
+
+/**
+ * Formats a list of FSRS steps as a space-separated string, e.g. ["1m", "10m"] -> "1m 10m".
+ *
+ * @param {readonly StepUnit[]} steps - The steps.
+ * @returns {string} - The formatted steps.
+ */
+export function formatFsrsSteps(steps: readonly StepUnit[]): string {
+    return steps.join(" ");
+}
+
+/**
+ * Parses a user-provided (re)learning steps string such as "1m 10m", "1m, 1h, 1d".
+ *
+ * Each step must be a positive whole number followed by a unit: m (minutes), h (hours)
+ * or d (days). Steps may be separated by whitespace and/or commas. Units are case-insensitive
+ * and whitespace between the number and unit is allowed ("10 m").
+ * An empty (or whitespace-only) string is valid and yields no steps, in which case FSRS
+ * manages the (re)learning phase itself.
+ *
+ * @param {string} input - The steps string.
+ * @returns {StepUnit[] | null} - The parsed steps, or null if the input is invalid.
+ */
+export function parseFsrsSteps(input: string): StepUnit[] | null {
+    if (typeof input !== "string") {
+        return null;
+    }
+
+    const normalized = input
+        .trim()
+        .toLowerCase()
+        .replace(/(\d)\s+([mhd])\b/g, "$1$2");
+    if (normalized === "") {
+        return [];
+    }
+
+    const tokens = normalized.split(/[\s,]+/).filter((token) => token.length > 0);
+    const result: StepUnit[] = [];
+    for (const token of tokens) {
+        const match = /^(\d+)([mhd])$/.exec(token);
+        if (!match) {
+            return null;
+        }
+
+        const value = Number.parseInt(match[1], 10);
+        if (!Number.isSafeInteger(value) || value <= 0) {
+            return null;
+        }
+
+        result.push(`${value}${match[2]}` as StepUnit);
+    }
+
+    return result;
+}
+
+/**
+ * Parses a (re)learning steps string, falling back to the given defaults if it is invalid
+ * or missing.
+ *
+ * @param {string} input - The steps string.
+ * @param {readonly StepUnit[]} defaults - The fallback steps.
+ * @returns {StepUnit[]} - The parsed steps.
+ */
+export function parseFsrsStepsOrDefault(
+    input: string | null | undefined,
+    defaults: readonly StepUnit[],
+): StepUnit[] {
+    if (input === null || input === undefined) {
+        return [...defaults];
+    }
+
+    return parseFsrsSteps(input) ?? [...defaults];
 }
 
 /**

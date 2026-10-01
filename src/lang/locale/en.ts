@@ -245,6 +245,17 @@ const en: IBaseLocale = {
     SWITCH_TO_FSRS_ALGORITHM: "Switch flashcard algorithm to FSRS?",
     CONFIRM_FSRS_ALGORITHM_SWITCH:
         "Switching to FSRS may cause unforseen data loss, as it is still not tested enough! Switching changes how flashcard scheduling data is formatted as cards are reviewed. this means that rewritten cards in the FSRS format, will require a lot more parameters and thus a longer, more intrusive, scheduling data comment. There is best effort backwards compatibility for the scheduling comments, in case you might want to switch back to OSR. This means your scheduling data will be rewritten to the OSR format once you review a card with OSR enabled.",
+    FSRS_ENABLE_FUZZ: "FSRS interval fuzz",
+    FSRS_ENABLE_FUZZ_DESC:
+        "Slightly randomize FSRS review intervals (only for intervals of a few days or more) so that cards learned together do not keep coming due on the same day.",
+    FSRS_LEARNING_STEPS: "FSRS learning steps",
+    FSRS_LEARNING_STEPS_DESC:
+        'Delays for new cards before they graduate to review, separated by spaces, e.g. "1m 10m". Use m (minutes), h (hours) or d (days). Leave empty to let FSRS handle learning on its own.',
+    FSRS_RELEARNING_STEPS: "FSRS relearning steps",
+    FSRS_RELEARNING_STEPS_DESC:
+        'Delays for forgotten cards before they return to review, separated by spaces, e.g. "10m". Use m (minutes), h (hours) or d (days). Leave empty to let FSRS handle relearning on its own.',
+    FSRS_STEPS_INVALID:
+        'Invalid FSRS steps. Use positive whole numbers followed by m, h or d, separated by spaces (e.g. "1m 10m").',
     BASE_EASE: "Base ease",
     BASE_EASE_DESC: "minimum = 130, preferrably approximately 250.",
     BASE_EASE_MIN_WARNING: "The base ease must be at least 130.",
