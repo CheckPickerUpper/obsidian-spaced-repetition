@@ -24,6 +24,8 @@ export class Note {
     appendCardsToDeck(deck: Deck): void {
         for (const question of this.questionList) {
             for (const card of question.cards) {
+                // Suspended cards stay in the note, but are excluded from review, cram and stats
+                if (card.isSuspended) continue;
                 deck.appendRepItem(question.topicPathList, card);
             }
         }

@@ -1,4 +1,4 @@
-import { Platform, TFile } from "obsidian";
+import { Notice, Platform, TFile } from "obsidian";
 
 import { SettingsManager } from "src/data/settings-manager";
 import { t } from "src/lang/helpers";
@@ -6,6 +6,7 @@ import SRPlugin from "src/main";
 import { ReviewResponse } from "src/scheduling/algorithms/base/repetition-item";
 import { FlashcardReviewMode } from "src/scheduling/flashcard-review-sequencer";
 import { UIManager, UIState } from "src/ui/ui-manager";
+import { CommentParser } from "src/utils/comment-parser";
 import EmulatedPlatform from "src/utils/platform-detector";
 
 export class CommandManager {
@@ -433,6 +434,23 @@ export class CommandManager {
         });
 
         this.plugin.addCommand({
+            id: "srs-unsuspend-flashcards-in-note",
+            name: t("UNSUSPEND_CARDS_IN_NOTE"),
+            repeatable: false,
+            checkCallback: (checking: boolean) => {
+                const openFile: TFile | null = this.plugin.app.workspace.getActiveFile();
+
+                if (openFile === null || openFile.extension !== "md" || !this.plugin.isInitialized)
+                    return false;
+
+                if (!checking) {
+                    void this.unsuspendCardsInNote(openFile);
+                }
+                return true;
+            },
+        });
+
+        this.plugin.addCommand({
             id: "srs-open-review-queue-view",
             name: t("OPEN_REVIEW_QUEUE_VIEW"),
             callback: async () => {
@@ -440,5 +458,22 @@ export class CommandManager {
                 await this.uiManager.sidebarManager.openReviewQueueView();
             },
         });
+    }
+
+    /**
+     * Removes the suspended marker from every flashcard in the note, then resyncs so they are reviewable again.
+     */
+    private async unsuspendCardsInNote(file: TFile): Promise<void> {
+        let count = 0;
+        await this.plugin.app.vault.process(file, (data) => {
+            const result = CommentParser.removeSuspendedMarkers(data);
+            count = result.count;
+            return result.text;
+        });
+
+        new Notice(t("CARDS_UNSUSPENDED_IN_NOTE", { count }));
+        if (count > 0 && !this.plugin.dataManager.syncLock) {
+            await this.plugin.dataManager.sync();
+        }
     }
 }

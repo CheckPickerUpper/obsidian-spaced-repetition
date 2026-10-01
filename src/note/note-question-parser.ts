@@ -140,8 +140,14 @@ export class NoteQuestionParser {
                 cardScheduleInfoList = cardScheduleInfoList.slice(0, correctLength);
             }
 
+            const suspendedFlags: boolean[] = DataStore.getInstance().getSuspendedFlags(
+                question.questionText.original,
+                new RepItemStorageInfo(this.noteFile.path, question.questionText.textHash),
+            );
+
             // Create the list of card objects, and attach to the question
             const cardList: Card[] = this.createCardList(cardFrontBackList, cardScheduleInfoList);
+            cardList.forEach((card, i) => (card.isSuspended = suspendedFlags[i] === true));
             question.setCardList(cardList);
             result.push(question);
         }

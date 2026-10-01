@@ -12,6 +12,7 @@ export default class CardMenuButtonComponent extends MenuButtonComponent {
         isModal: boolean,
         isResetButtonDisabled: boolean,
         deleteCurrentCard: () => void,
+        suspendCurrentCard: () => void,
         editClickHandler: () => void,
         jumpToCurrentCard: () => Promise<void>,
         displayCurrentCardInfoNotice: () => void,
@@ -36,6 +37,7 @@ export default class CardMenuButtonComponent extends MenuButtonComponent {
                     jumpToCurrentCard,
                     displayCurrentCardInfoNotice,
                     deleteCurrentCard,
+                    suspendCurrentCard,
                     closeModal,
                 );
 
@@ -61,6 +63,7 @@ export default class CardMenuButtonComponent extends MenuButtonComponent {
         jumpToCurrentCard: () => Promise<void>,
         displayCurrentCardInfoNotice: () => void,
         deleteCurrentCard: () => void,
+        suspendCurrentCard: () => void,
         closeModal?: () => void,
     ) {
         if (isExtended) {
@@ -121,6 +124,13 @@ export default class CardMenuButtonComponent extends MenuButtonComponent {
                 .setIcon("info")
                 .onClick(() => {
                     displayCurrentCardInfoNotice();
+                });
+        });
+        cardMenu.addItem((item) => {
+            item.setTitle(t("SUSPEND_CARD"))
+                .setIcon("pause")
+                .onClick(() => {
+                    suspendCurrentCard();
                 });
         });
         if (showDeleteButton) {

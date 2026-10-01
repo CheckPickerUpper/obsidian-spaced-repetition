@@ -3,6 +3,10 @@ import { t } from "src/lang/helpers";
 import { SRAlgorithmType } from "src/scheduling/algorithms/base/isr-algorithm";
 import { pathMatchesPattern } from "src/utils/fs";
 
+// What happens when a flashcard becomes a leech (see leechThreshold)
+export type LeechAction = "suspend" | "notice";
+export const LEECH_ACTIONS: LeechAction[] = ["suspend", "notice"];
+
 export interface SRSettings {
     // flashcards
     flashcardTags: string[];
@@ -70,6 +74,10 @@ export interface SRSettings {
     openViewInNewTab: boolean;
     useCustomHotkeys: boolean;
     useCalloutsForSchedulingComments: boolean;
+
+    // leech detection (FSRS only, as SM-2/OSR doesn't track lapses)
+    leechThreshold: number;
+    leechAction: LeechAction;
 
     // algorithm
     algorithm: SRAlgorithmType;
@@ -160,6 +168,10 @@ export const DEFAULT_SETTINGS: SRSettings = {
     openViewInNewTabMobile: false,
     useCustomHotkeys: false,
     useCalloutsForSchedulingComments: false,
+
+    // leech detection
+    leechThreshold: 8,
+    leechAction: "suspend",
 
     // algorithm
     algorithm: SRAlgorithmType.SM_2_OSR,
@@ -285,6 +297,19 @@ export function upgradeSettings(settings: SRSettings) {
         settings.reviewReminderBounceDock === undefined
     ) {
         settings.reviewReminderBounceDock = DEFAULT_SETTINGS.reviewReminderBounceDock;
+    }
+
+    // leech detection
+    if (
+        typeof settings.leechThreshold !== "number" ||
+        !Number.isFinite(settings.leechThreshold) ||
+        settings.leechThreshold < 0
+    ) {
+        settings.leechThreshold = DEFAULT_SETTINGS.leechThreshold;
+    }
+
+    if (!LEECH_ACTIONS.includes(settings.leechAction)) {
+        settings.leechAction = DEFAULT_SETTINGS.leechAction;
     }
 }
 

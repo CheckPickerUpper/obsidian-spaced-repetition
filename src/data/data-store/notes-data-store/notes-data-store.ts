@@ -62,6 +62,18 @@ export class NotesDataStore implements IDataStore {
     }
 
     /**
+     * Reads the per-card suspended flags from the question's SR comment.
+     *
+     * @param originalQuestionText
+     * @param _
+     * @returns
+     */
+    getSuspendedFlags(originalQuestionText: string, _: RepItemStorageInfo): boolean[] {
+        const schedulingComment = originalQuestionText.match(/<!--SR:(.+?)-->/m)?.[1];
+        return schedulingComment ? CommentParser.parseSuspendedFlags(schedulingComment) : [];
+    }
+
+    /**
      * Removes scheduling information from a question text.
      *
      * @param questionText

@@ -49,6 +49,27 @@ const en: IBaseLocale = {
     REVIEW_ALL_CARDS: "Review flashcards from all notes",
     REVIEW_CARDS_IN_NOTE: "Review flashcards in this note",
     CRAM_CARDS_IN_NOTE: "Cram flashcards in this note",
+    // card suspension & leeches
+    SUSPEND_CARD: "Suspend Card",
+    CARD_SUSPENDED:
+        'Card suspended. Use the command "Unsuspend all flashcards in this note" (or remove ",suspended" from its SR comment) to review it again.',
+    UNSUSPEND_CARDS_IN_NOTE: "Unsuspend all flashcards in this note",
+    CARDS_UNSUSPENDED_IN_NOTE: "Unsuspended ${count} flashcard(s) in this note.",
+    LEECH_DETECTED:
+        "Leech: this card has lapsed ${lapses} times. Consider rewriting or splitting it.",
+    LEECH_SUSPENDED:
+        'Leech: this card has lapsed ${lapses} times and was suspended. Consider rewriting or splitting it, then use "Unsuspend all flashcards in this note".',
+    GROUP_LEECHES: "Leeches",
+    GROUP_LEECHES_DESC:
+        "A leech is a card you keep forgetting. Leech detection counts lapses (forgetting a card in review), which only the FSRS algorithm tracks.",
+    LEECH_THRESHOLD: "Leech threshold",
+    LEECH_THRESHOLD_DESC:
+        "Number of lapses after which a card is treated as a leech. Set to 0 to disable leech detection.",
+    LEECH_THRESHOLD_WARNING: "The leech threshold must be a whole number of 0 or more.",
+    LEECH_ACTION: "Leech action",
+    LEECH_ACTION_DESC: "What to do when a card becomes a leech.",
+    LEECH_ACTION_SUSPEND: "Suspend card and show a notice",
+    LEECH_ACTION_NOTICE: "Only show a notice",
     VIEW_STATS: "View statistics",
     OPEN_REVIEW_QUEUE_VIEW: "Open Notes Review Queue in sidebar",
     STATUS_BAR: "Review: ${dueNotesCount} note(s), ${dueFlashcardsCount} card(s) due",

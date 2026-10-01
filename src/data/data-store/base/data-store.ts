@@ -34,6 +34,15 @@ export interface IDataStore {
     ): RepItemScheduleInfo[];
 
     /**
+     * Reads the per-card suspended flags of a question, in the same order as the schedules returned by createSchedule.
+     *
+     * @param originalQuestionText
+     * @param storageInfo
+     * @returns
+     */
+    getSuspendedFlags(originalQuestionText: string, storageInfo: RepItemStorageInfo): boolean[];
+
+    /**
      * Removes scheduling information from a question text.
      *
      * @param questionText

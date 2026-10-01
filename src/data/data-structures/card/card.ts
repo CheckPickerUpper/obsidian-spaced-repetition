@@ -13,6 +13,9 @@ export class Card extends RepetitionItem {
     front: string = "";
     back: string = "";
 
+    // Suspended cards are kept in the note, but excluded from review, cram and deck stats
+    isSuspended: boolean = false;
+
     constructor(init?: Partial<Card>) {
         super(RepetitionItemType.Card, RepetitionPhase.New, null, null);
         Object.assign(this, init);
