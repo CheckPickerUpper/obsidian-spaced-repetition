@@ -1,6 +1,7 @@
 export interface ReviewCardContent {
     markdown: string;
     hints: string[];
+    checkMode: "manual" | "auto";
 }
 
 const HINT_BLOCK_START = /^\s*<!--\s*SR-HINTS\s*$/i;
@@ -13,16 +14,43 @@ const CODE_LANGUAGE = /```([A-Za-z0-9_+#.-]*)[ \t]*\r?\n/;
  * Removes the authored hint block from the answer while retaining the hints for review controls.
  */
 export function parseReviewCardContent(markdown: string): ReviewCardContent {
-    const lines: string[] = markdown.replaceAll("\r\n", "\n").split("\n");
+    let checkMode: "manual" | "auto" = "manual";
+    let fence = "";
+    const lines: string[] = [];
+    for (const line of markdown.replaceAll("\r\n", "\n").split("\n")) {
+        const delimiter = line.trimStart().match(/^(`{3,}|~{3,})/);
+        if (fence.length > 0) {
+            if (
+                delimiter !== null &&
+                delimiter[1][0] === fence[0] &&
+                delimiter[1].length >= fence.length
+            )
+                fence = "";
+            lines.push(line);
+            continue;
+        }
+        if (delimiter !== null) {
+            fence = delimiter[1];
+            lines.push(line);
+            continue;
+        }
+        if (/^\s*<!--\s*SR-CHECK\s*-->\s*$/.test(line)) {
+            checkMode = "auto";
+            continue;
+        }
+        lines.push(line);
+    }
+    let visibleMarkdown = markdown;
+    if (checkMode === "auto") visibleMarkdown = lines.join("\n");
     const startIndex: number = findHintBlockStart(lines);
 
     if (startIndex === -1) {
-        return { markdown, hints: [] };
+        return { markdown: visibleMarkdown, hints: [], checkMode };
     }
 
     const endIndex: number = findHintBlockEnd(lines, startIndex);
     if (endIndex === -1) {
-        return { markdown, hints: [] };
+        return { markdown: visibleMarkdown, hints: [], checkMode };
     }
 
     const contentLines: string[] = [...lines.slice(0, startIndex), ...lines.slice(endIndex + 1)];
@@ -30,6 +58,7 @@ export function parseReviewCardContent(markdown: string): ReviewCardContent {
     return {
         markdown: contentLines.join("\n").trim(),
         hints: parseHints(lines.slice(startIndex + 1, endIndex)),
+        checkMode,
     };
 }
 

@@ -102,6 +102,20 @@ x * 2
 
 See [typed answers and hints](docs/docs/en/flashcards/q-and-a-cards.md).
 
+Opt into answer checking with an answer-side `<!-- SR-CHECK -->` line:
+
+```markdown
+What does print(6 * 7) output?
+?
+<!-- SR-CHECK -->
+
+42
+```
+
+The check trims and collapses whitespace and is exact otherwise. It suggests
+Good for a match or Again with a visible diff for a mismatch. You choose the
+rating; the check never submits one.
+
 For code clozes, write `[[sr:answer]]` inside a code fence or inline code,
 for example `` `print([[sr:1 + 2]])` ``. Each span makes a sibling card;
 review hides it as `[...]` on the front and reveals it on the back while

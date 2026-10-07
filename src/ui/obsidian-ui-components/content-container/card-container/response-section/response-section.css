@@ -175,3 +175,8 @@ body:not(.is-mobile)
     .sr-response-button.sr-easy-button::after {
     content: "3";
 }
+
+.sr-suggested-rating {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}

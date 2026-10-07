@@ -9,6 +9,7 @@ import { formatScheduleInterval } from "src/scheduling/algorithms/schedule-displ
 import { FlashcardReviewMode } from "src/scheduling/flashcard-review-sequencer";
 import SRResponseButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/response-section/sr-response-button";
 import SRButtonComponent from "src/ui/sr-button";
+import { AnswerCheck } from "src/utils/answer-check";
 import EmulatedPlatform from "src/utils/platform-detector";
 
 export default class ResponseSectionComponent {
@@ -150,6 +151,28 @@ export default class ResponseSectionComponent {
 
         this.hintButton.setButtonText(`Show Hint ${revealedHintCount + 1}`);
         this.hintButton.buttonEl.removeClass("sr-is-hidden");
+    }
+
+    public selectSuggestedRating(check: AnswerCheck): void {
+        const buttons = [this.againButton, this.hardButton, this.goodButton, this.easyButton];
+        for (const button of buttons) button.buttonEl.removeClass("sr-suggested-rating");
+        switch (check.kind) {
+            case "manual":
+                this.againButton.buttonEl.focus();
+                return;
+            case "match":
+                this.goodButton.buttonEl.removeClass("sr-is-hidden");
+                this.goodButton.buttonEl.addClass("sr-suggested-rating");
+                this.goodButton.buttonEl.focus();
+                return;
+            case "mismatch":
+                this.againButton.buttonEl.addClass("sr-suggested-rating");
+                this.againButton.buttonEl.focus();
+                return;
+            default:
+                check satisfies never;
+                throw new Error("Unknown suggested answer rating");
+        }
     }
 
     public hideAllButtons() {

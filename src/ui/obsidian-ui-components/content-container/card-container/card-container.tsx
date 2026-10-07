@@ -17,6 +17,7 @@ import {
     SessionData,
 } from "src/ui/obsidian-ui-components/content-container/content-manager";
 import { ConfirmationModal } from "src/ui/obsidian-ui-components/modals/confirmation-modal";
+import { renderAnswerCheck } from "src/utils/answer-check";
 import { escapeHtml } from "src/utils/escape-html";
 import EmulatedPlatform from "src/utils/platform-detector";
 import { RenderMarkdownWrapper } from "src/utils/renderers";
@@ -48,6 +49,7 @@ export class CardContainer {
 
     private clozeInputs: NodeListOf<HTMLInputElement> | null = null;
     private clozeAnswers: NodeListOf<Element> | null = null;
+    private currentReviewMode = FlashcardReviewMode.Review;
     private answerSession = new ReviewAnswerSession("");
     private currentSessionData: SessionData | null = null;
     private readonly submitTypedAnswerHandler = (answer: string): void => {
@@ -85,7 +87,18 @@ export class CardContainer {
         this.plugin = plugin;
         this.settings = settings;
         this.cardState = CardState.Closed;
-        this.processReviewHandler = processReviewHandler;
+        this.processReviewHandler = async (response) => {
+            let rating = response;
+            // Cram uses Easy to remove a recalled card; checked cards label that action Good.
+            if (
+                this.currentReviewMode === FlashcardReviewMode.Cram &&
+                this.answerSession.check().kind !== "manual" &&
+                response === ReviewResponse.Good
+            ) {
+                rating = ReviewResponse.Easy;
+            }
+            await processReviewHandler(rating);
+        };
         this.skipCardHandler = skipCardHandler;
         this.showAnswerHandler = showAnswerHandler;
         this.jumpToCardHandler = jumpToCurrentCardHandler;
@@ -483,6 +496,7 @@ export class CardContainer {
     ) {
         if (sessionData.cardData.currentCard === null) return;
 
+        this.currentReviewMode = reviewMode;
         this.setCustomHotKeyState(settings.useCustomHotkeys);
         this.cardState = sessionData.cardData.currentCardState;
 
@@ -527,6 +541,9 @@ export class CardContainer {
         // Evaluate cloze answers
         this._evaluateClozeAnswers();
 
+        const answerCheck = this.answerSession.check();
+        renderAnswerCheck({ check: answerCheck, container: this.content });
+
         // Show response buttons
         this.response.showRatingButtons(
             reviewMode,
@@ -540,7 +557,7 @@ export class CardContainer {
         // NEW: restore keyboard focus after cloze confirmation
         if (this.plugin.uiManager === null) throw new Error("UI manager not initialized!!!");
         this.plugin.uiManager.setSRViewInFocus(true);
-        this.response.againButton.buttonEl.focus();
+        this.response.selectSuggestedRating(answerCheck);
     }
 
     private _keydownHandler = (e: KeyboardEvent) => {
@@ -591,7 +608,18 @@ export class CardContainer {
                     this.showAnswerHandler();
                     consumeKeyEvent();
                 } else if (this.cardState === CardState.Back) {
-                    void this.processReviewHandler(ReviewResponse.Good);
+                    if (
+                        this.answerSession.check().kind !== "manual" &&
+                        e.target instanceof HTMLButtonElement &&
+                        e.target.hasClass("sr-response-button")
+                    ) {
+                        // Let Enter/Space activate the focused suggestion or the learner's override.
+                        return;
+                    }
+                    let rating = ReviewResponse.Good;
+                    if (this.answerSession.check().kind === "mismatch")
+                        rating = ReviewResponse.Again;
+                    void this.processReviewHandler(rating);
                     consumeKeyEvent();
                 }
                 break;

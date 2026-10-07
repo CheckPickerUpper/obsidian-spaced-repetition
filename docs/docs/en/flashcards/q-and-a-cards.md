@@ -192,3 +192,29 @@ To include blank lines, see the section below.
 
 These two cards are considered sibling cards. See [sibling cards](flashcards-overview.md#sibling-cards) regarding the
 [Bury sibling cards until the next day](../user-options.md#flashcard-review) scheduling option.
+
+## Opt-in answer checking (fork)
+
+Add `<!-- SR-CHECK -->` on its own line on the answer side of a multiline
+Q&A card. Keep the answer immediately below it:
+
+```markdown
+What does print(6 * 7) output?
+?
+<!-- SR-CHECK -->
+
+42
+```
+
+After **Check Answer** or `Ctrl/Cmd+Enter`, a match suggests **Good** and a
+mismatch suggests **Again**, with deleted and inserted text showing the difference.
+The suggested button has focus and an outline. Click any rating, use the
+rating hotkeys, or activate the focused button with Enter/Space. The check
+never submits a rating. Cards without the comment keep manual review.
+
+Comparison trims leading/trailing whitespace, collapses whitespace runs
+(including newlines and tabs) to one space, and is exact otherwise, including
+case and punctuation. Use a plain text answer or a single code fence; code
+fence delimiters and language labels are excluded from comparison. Hints can
+be used together with the check. Choosing Good in cram mode marks the checked
+card recalled, like the existing Easy action.

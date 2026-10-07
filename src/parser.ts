@@ -105,6 +105,11 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
         const currentLine = lines[i],
             currentTrimmed = lines[i].trim();
 
+        if (/^\s*<!--\s*SR-CHECK\s*-->\s*$/.test(currentLine) && cardType !== null) {
+            cardText += "\n" + currentLine;
+            continue;
+        }
+
         // Review hints are metadata for the current multiline card, not card text to scan.
         if (/^\s*<!--\s*SR-HINTS\s*$/i.test(currentLine) && cardType !== null) {
             const hintLines = [currentLine];
