@@ -1,10 +1,14 @@
 name: Lint and Test Code
 
 on:
+    workflow_dispatch:
     pull_request:
         branches-ignore: [gh-pages]
     push:
         branches-ignore: [gh-pages]
+
+permissions:
+    contents: read
 
 jobs:
     lint_and_test_code:
