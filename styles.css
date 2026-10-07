@@ -164,6 +164,53 @@
   & .sr-content .cloze-input {
     height: 1.4rem;
   }
+  & .sr-content pre {
+    overflow-x: auto;
+  }
+  & .sr-hints,
+  & .sr-typed-answer-review {
+    margin: var(--size-4-4) 0;
+    padding: var(--size-4-3);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background-color: var(--background-secondary);
+  }
+  & .sr-hints-heading,
+  & .sr-hint-label,
+  & .sr-typed-answer-label,
+  & .sr-answer-label {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  & .sr-hint + .sr-hint {
+    margin-top: var(--size-4-3);
+    padding-top: var(--size-4-3);
+    border-top: 1px solid var(--background-modifier-border);
+  }
+  & .sr-hint-content,
+  & .sr-typed-answer-content {
+    margin-top: var(--size-4-1);
+  }
+  & .sr-typed-answer-result {
+    margin-top: var(--size-4-1);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+  }
+  & .sr-answer-exact {
+    color: var(--color-green);
+  }
+  & .sr-answer-normalized {
+    color: var(--color-yellow);
+  }
+  & .sr-answer-different {
+    color: var(--color-red);
+  }
+  & .sr-answer-label {
+    margin-top: var(--size-4-4);
+  }
 }
 @media only screen and (orientation: landscape) {
   .is-phone .sr-card-container {
@@ -218,6 +265,38 @@
       display: none;
     }
   }
+}
+.sr-response.sr-has-typed-answer {
+  flex-wrap: wrap;
+  & .sr-typed-answer-panel {
+    flex: 1 0 100%;
+  }
+}
+.sr-typed-answer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  width: 100%;
+}
+.sr-typed-answer-input {
+  width: 100%;
+  min-height: 5rem;
+  resize: vertical;
+  font-family: var(--font-monospace);
+  line-height: 1.4;
+}
+.sr-typed-answer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-4-2);
+}
+.sr-typed-answer-submit,
+.sr-hint-button {
+  padding: var(--size-4-2) var(--size-4-4);
+  border-radius: var(--button-radius);
+}
+.sr-response.sr-has-typed-answer > .sr-response-button {
+  flex: 1 1 0;
 }
 .sr-edit-view .sr-response {
   border: none;

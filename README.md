@@ -30,6 +30,7 @@ Fight the forgetting curve by reviewing flashcards & notes using the FSRS or the
         - LaTeX
         - Code syntax highlighting
         - Footnotes
+- Typed answer review for normal Q&A cards, including three progressive hints and code-aware answer previews
 - [Organize Decks](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/decks/) (Using Obsidian's hierarchical tags or folder structure)
 - [Card context - automatic titles based on headings](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/reviewing/#context) (i.e. `Note title > Heading 1 > Subheading`)
 
@@ -80,6 +81,26 @@ Fight the forgetting curve by reviewing flashcards & notes using the FSRS or the
 <br/>
 
 ### Reviewing Cards
+
+This fork supports typed answers on Q&A cards. **Check Answer** or
+`Ctrl/Cmd+Enter` reveals your submitted answer beside the stored answer; you
+choose the rating. Code answers use the stored answer's fence language for
+the preview. Add up to three hints on the answer side, without blank lines
+between the comment and answer:
+
+```markdown
+How do you double an input?
+?
+<!-- SR-HINTS
+1. Use multiplication.
+2. Keep the input on the left.
+3. Multiply by two.
+-->
+
+x * 2
+```
+
+See [typed answers and hints](docs/docs/en/flashcards/q-and-a-cards.md).
 
 ##### 1.1. Open the list of all decks with either of two commands(ctrl+p):
 

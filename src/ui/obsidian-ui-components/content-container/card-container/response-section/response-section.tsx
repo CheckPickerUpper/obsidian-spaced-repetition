@@ -8,6 +8,7 @@ import { ReviewResponse } from "src/scheduling/algorithms/base/repetition-item";
 import { formatScheduleInterval } from "src/scheduling/algorithms/schedule-display";
 import { FlashcardReviewMode } from "src/scheduling/flashcard-review-sequencer";
 import SRResponseButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/response-section/sr-response-button";
+import SRButtonComponent from "src/ui/sr-button";
 import EmulatedPlatform from "src/utils/platform-detector";
 
 export default class ResponseSectionComponent {
@@ -17,15 +18,70 @@ export default class ResponseSectionComponent {
     public goodButton: SRResponseButtonComponent;
     public easyButton: SRResponseButtonComponent;
     public answerButton: SRResponseButtonComponent;
+    private typedAnswerPanel: HTMLDivElement;
+    private typedAnswerInput: HTMLTextAreaElement;
+    private typedAnswerPreview: HTMLDivElement;
+    private checkAnswerButton: SRButtonComponent;
+    private hintButton: SRButtonComponent;
 
     constructor(
         container: HTMLElement,
         settings: SRSettings,
         showAnswer: () => void,
         processReview: (response: ReviewResponse) => Promise<void>,
+        submitTypedAnswer: (answer: string) => void,
+        showNextHint: () => void,
+        renderTypedAnswer: (answer: string, container: HTMLElement) => Promise<void>,
     ) {
         this.responseEl = container.createDiv();
         this.responseEl.addClass("sr-response");
+
+        this.typedAnswerPanel = this.responseEl.createDiv({
+            cls: ["sr-typed-answer-panel", "sr-is-hidden"],
+        });
+        this.typedAnswerInput = this.typedAnswerPanel.createEl("textarea", {
+            cls: "sr-typed-answer-input",
+            attr: {
+                rows: "4",
+                placeholder: "Type your answer",
+                spellcheck: "false",
+                "aria-label": "Type your answer",
+            },
+        });
+        const preview = this.typedAnswerPanel.createDiv({ cls: "sr-typed-answer-preview" });
+        this.typedAnswerPreview = preview;
+        this.typedAnswerInput.addEventListener("input", () => {
+            preview.empty();
+            void renderTypedAnswer(this.typedAnswerInput.value, preview.createDiv());
+            this.checkAnswerButton.setDisabled(this.typedAnswerInput.value.trim().length === 0);
+        });
+        this.typedAnswerInput.addEventListener("keydown", (event: KeyboardEvent) => {
+            if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault();
+                if (this.typedAnswerInput.value.trim().length > 0) {
+                    submitTypedAnswer(this.typedAnswerInput.value);
+                }
+            }
+        });
+
+        const typedAnswerActions: HTMLDivElement = this.typedAnswerPanel.createDiv({
+            cls: "sr-typed-answer-actions",
+        });
+        this.checkAnswerButton = new SRButtonComponent(typedAnswerActions, {
+            classNames: ["sr-bg-blue", "sr-typed-answer-submit"],
+            text: "Check Answer",
+            onClick: () => {
+                if (this.typedAnswerInput.value.trim().length > 0) {
+                    submitTypedAnswer(this.typedAnswerInput.value);
+                }
+            },
+        });
+
+        this.hintButton = new SRButtonComponent(this.responseEl, {
+            classNames: ["sr-bg-yellow", "sr-hint-button", "sr-is-hidden"],
+            text: "Show Hint 1",
+            onClick: showNextHint,
+        });
 
         this.answerButton = new SRResponseButtonComponent(this.responseEl, {
             classNames: ["sr-bg-blue", "sr-show-answer-button"],
@@ -68,16 +124,32 @@ export default class ResponseSectionComponent {
         });
     }
 
-    public resetResponseButtons() {
+    public resetResponseButtons(typedAnswerEnabled: boolean, hintCount: number) {
         // Sets all buttons in to their default state
         if (this.responseEl.hasClass("sr-is-hidden")) {
             this.responseEl.removeClass("sr-is-hidden");
         }
+        this.responseEl.toggleClass("sr-has-typed-answer", typedAnswerEnabled);
+        this.typedAnswerPanel.toggleClass("sr-is-hidden", !typedAnswerEnabled);
+        this.typedAnswerInput.value = "";
+        this.typedAnswerPreview.empty();
+        this.checkAnswerButton.setDisabled(true);
         this.answerButton.buttonEl.removeClass("sr-is-hidden");
+        this.setHintProgress(hintCount, 0);
         this.againButton.buttonEl.addClass("sr-is-hidden");
         this.hardButton.buttonEl.addClass("sr-is-hidden");
         this.goodButton.buttonEl.addClass("sr-is-hidden");
         this.easyButton.buttonEl.addClass("sr-is-hidden");
+    }
+
+    public setHintProgress(hintCount: number, revealedHintCount: number) {
+        if (hintCount <= revealedHintCount) {
+            this.hintButton.buttonEl.addClass("sr-is-hidden");
+            return;
+        }
+
+        this.hintButton.setButtonText(`Show Hint ${revealedHintCount + 1}`);
+        this.hintButton.buttonEl.removeClass("sr-is-hidden");
     }
 
     public hideAllButtons() {
@@ -85,6 +157,8 @@ export default class ResponseSectionComponent {
             this.responseEl.addClass("sr-is-hidden");
         }
         this.answerButton.buttonEl.addClass("sr-is-hidden");
+        this.typedAnswerPanel.addClass("sr-is-hidden");
+        this.hintButton.buttonEl.addClass("sr-is-hidden");
         this.againButton.buttonEl.addClass("sr-is-hidden");
         this.hardButton.buttonEl.addClass("sr-is-hidden");
         this.goodButton.buttonEl.addClass("sr-is-hidden");
@@ -103,8 +177,11 @@ export default class ResponseSectionComponent {
         if (this.responseEl.hasClass("sr-is-hidden")) {
             this.responseEl.removeClass("sr-is-hidden");
         }
-        // Shows the rating buttons and hides the show answer button
+        // Shows the rating buttons and hides the front-of-card controls
         this.answerButton.buttonEl.addClass("sr-is-hidden");
+        this.typedAnswerPanel.addClass("sr-is-hidden");
+        this.hintButton.buttonEl.addClass("sr-is-hidden");
+        this.responseEl.removeClass("sr-has-typed-answer");
 
         if (reviewMode === FlashcardReviewMode.Cram) {
             this.responseEl.addClass("is-cram");
