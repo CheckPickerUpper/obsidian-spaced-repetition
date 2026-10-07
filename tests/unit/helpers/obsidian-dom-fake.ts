@@ -1,5 +1,3 @@
-import type { DomElementInfo } from "obsidian";
-
 // Obsidian augments the DOM; jsdom supplies the underlying browser elements.
 export function installObsidianDom(): void {
     HTMLElement.prototype.addClass = function (name) {
@@ -34,7 +32,8 @@ export function installObsidianDom(): void {
             else names = [options.cls];
             element.classList.add(...names);
         }
-        if (options.text) element.textContent = options.text;
+        if (typeof options.text === "string") element.textContent = options.text;
+        else if (options.text) element.append(options.text);
         for (const [name, value] of Object.entries(options.attr || {}))
             element.setAttribute(name, String(value));
         this.append(element);
