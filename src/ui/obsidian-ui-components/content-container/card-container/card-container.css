@@ -118,3 +118,19 @@
         }
     }
 }
+
+.sr-answer-diff {
+    white-space: pre-wrap;
+    margin-block: 0.5em;
+}
+
+.sr-answer-diff del {
+    color: var(--text-error);
+    background: var(--background-modifier-error);
+}
+
+.sr-answer-diff ins {
+    color: var(--text-success);
+    background: var(--background-modifier-success);
+    text-decoration: underline;
+}

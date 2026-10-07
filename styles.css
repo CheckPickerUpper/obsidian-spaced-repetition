@@ -233,6 +233,19 @@
     }
   }
 }
+.sr-answer-diff {
+  white-space: pre-wrap;
+  margin-block: 0.5em;
+}
+.sr-answer-diff del {
+  color: var(--text-error);
+  background: var(--background-modifier-error);
+}
+.sr-answer-diff ins {
+  color: var(--text-success);
+  background: var(--background-modifier-success);
+  text-decoration: underline;
+}
 
 /* src/ui/obsidian-ui-components/content-container/card-container/context-section/context-section.css */
 .sr-context {
@@ -408,6 +421,10 @@ body:not(.is-mobile)
   .sr-card-container:not(.sr-custom-hotkeys)
   .sr-response-button.sr-easy-button::after {
   content: "3";
+}
+.sr-suggested-rating {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
 }
 
 /* src/ui/obsidian-ui-components/content-container/card-container/toolbar/toolbar.css */
