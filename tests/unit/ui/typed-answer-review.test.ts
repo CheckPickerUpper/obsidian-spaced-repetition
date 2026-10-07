@@ -4,7 +4,7 @@ import { ReviewAnswerSession } from "src/utils/review-answer-session";
 
 jest.mock("obsidian", () => ({
     ...jest.requireActual("../__mocks__/obsidian.js"),
-    ButtonComponent: jest.requireActual("../helpers/obsidian-dom-fake.js").ButtonComponent,
+    ButtonComponent: jest.requireActual("../helpers/obsidian-dom-fake").ButtonComponent,
 }));
 jest.mock(
     "src/ui/obsidian-ui-components/content-container/card-container/response-section/response-section.css",
@@ -12,7 +12,7 @@ jest.mock(
 );
 
 beforeAll(() => {
-    const { installObsidianDom } = require("../helpers/obsidian-dom-fake.js");
+    const { installObsidianDom } = require("../helpers/obsidian-dom-fake");
     installObsidianDom();
 });
 
