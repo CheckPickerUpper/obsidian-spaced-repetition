@@ -173,3 +173,23 @@ And this note has both ==highlighted clozes==^[footnote hint][^1] and {{2::anki 
 !!! warning
 
     Remember, deletions must be of the same Cloze Type. You can't mix, for instance, a Classic Cloze with a Simplified Cloze in the same note, as they employ different ways to sort and identify the cards.
+
+## Cloze spans inside code (fork)
+
+Inside fenced or inline code, surround the answer with `[[sr:` and `]]`.
+The front hides that span as `[...]`; the back restores the answer. Each
+marker makes a sibling card, with the other answers visible. The original
+code fence and language are retained for Obsidian's syntax highlighting.
+
+````markdown
+```python
+print([[sr:1 + 2]])
+print([[sr:3 * 4]])
+```
+````
+
+Inline example: ``Recall `sum([[sr:a, b]])` ``.
+A marker can enclose an expression, one line, or several lines within a fence.
+The first `]]` closes the marker; nesting markers is not supported.
+This syntax is for code only. Ordinary `==` and `**` operators inside code
+remain literal. Existing prose cloze patterns continue to work as before.

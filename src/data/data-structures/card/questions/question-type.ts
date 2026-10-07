@@ -2,6 +2,7 @@ import { ClozeCrafter, IClozeFormatter } from "clozecraft";
 
 import { CardType } from "src/data/data-structures/card/questions/question";
 import { SRSettings } from "src/data/settings";
+import { CodeClozeDocument } from "src/utils/code-clozes";
 import { findLineIndexOfSearchStringIgnoringWs } from "src/utils/strings";
 
 export class CardFrontBack {
@@ -95,7 +96,10 @@ class QuestionTypeMultiLineReversed implements IQuestionTypeHandler {
 class QuestionTypeCloze implements IQuestionTypeHandler {
     expand(questionText: string, settings: SRSettings): CardFrontBack[] {
         const clozecrafter = new ClozeCrafter(settings.clozePatterns);
-        const clozeNote = clozecrafter.createClozeNote(questionText);
+        const code = new CodeClozeDocument(questionText);
+        let source = questionText;
+        if (code.clozes.length > 0) source = code.template;
+        const clozeNote = clozecrafter.createClozeNote(source);
 
         // Determine which question formatter to use based on settings (Cloze patterns as inputs or not).
         const clozeFormatter = settings.convertClozePatternsToInputs
@@ -104,12 +108,35 @@ class QuestionTypeCloze implements IQuestionTypeHandler {
 
         let front: string, back: string;
         const result: CardFrontBack[] = [];
-        if (clozeNote === null) return result;
+        if (clozeNote !== null) {
+            for (let i = 0; i < clozeNote.numCards; i++) {
+                front = clozeNote.getCardFront(i, clozeFormatter);
+                back = clozeNote.getCardBack(i, clozeFormatter);
+                if (code.clozes.length > 0) {
+                    front = code.restore({ markdown: front, reveal: { kind: "all" } });
+                    back = code.restore({ markdown: back, reveal: { kind: "all" } });
+                }
+                result.push(new CardFrontBack(front, back));
+            }
+            if (code.clozes.length > 0) {
+                source = clozeNote.getCardBack(0, {
+                    asking: (answer = "") => answer,
+                    showingAnswer: (answer = "") => answer,
+                    hiding: (answer = "") => answer,
+                });
+            }
+        }
 
-        for (let i = 0; i < clozeNote.numCards; i++) {
-            front = clozeNote.getCardFront(i, clozeFormatter);
-            back = clozeNote.getCardBack(i, clozeFormatter);
-            result.push(new CardFrontBack(front, back));
+        for (let index = 0; index < code.clozes.length; index++) {
+            result.push(
+                new CardFrontBack(
+                    code.restore({
+                        markdown: source,
+                        reveal: { kind: "hide", cloze: code.clozes[index] },
+                    }),
+                    code.restore({ markdown: source, reveal: { kind: "all" } }),
+                ),
+            );
         }
 
         return result;

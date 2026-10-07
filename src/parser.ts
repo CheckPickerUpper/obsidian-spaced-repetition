@@ -2,6 +2,7 @@ import { ClozeCrafter } from "clozecraft";
 
 import { SR_METADATA_CALLOUT } from "src/data/constants";
 import { CardType } from "src/data/data-structures/card/questions/question";
+import { CodeClozeDocument } from "src/utils/code-clozes";
 
 export let debugParser = false;
 
@@ -206,7 +207,14 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
             }
             cardText += "\n" + codeBlockClose;
             i++;
-        } else if (cardType === null && clozecrafter.isClozeNote(currentLine)) {
+            if (cardType === null && new CodeClozeDocument(cardText).clozes.length > 0) {
+                cardType = CardType.Cloze;
+            }
+        } else if (
+            cardType === null &&
+            (clozecrafter.isClozeNote(currentLine) ||
+                new CodeClozeDocument(currentLine).clozes.length > 0)
+        ) {
             // Pick up cloze cards
             cardType = CardType.Cloze;
         }

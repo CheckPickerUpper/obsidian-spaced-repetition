@@ -102,6 +102,11 @@ x * 2
 
 See [typed answers and hints](docs/docs/en/flashcards/q-and-a-cards.md).
 
+For code clozes, write `[[sr:answer]]` inside a code fence or inline code,
+for example `` `print([[sr:1 + 2]])` ``. Each span makes a sibling card;
+review hides it as `[...]` on the front and reveals it on the back while
+keeping the code language. See [code clozes](docs/docs/en/flashcards/cloze-cards.md).
+
 ##### 1.1. Open the list of all decks with either of two commands(ctrl+p):
 
 - _Review Flashcards from all notes_
