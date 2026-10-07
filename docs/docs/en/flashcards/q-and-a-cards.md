@@ -31,7 +31,7 @@ the question goes on this side::answer goes here!
 
 ## Typed Answers, Hints, and Code Cards
 
-Normal Q&A cards show a text box before the answer is revealed. Type what you remember and choose **Check Answer**, or press `Ctrl/Cmd+Enter`. The plugin shows your submitted answer, compares it with the stored answer, and still leaves the scheduling rating to you.
+Normal Q&A cards show a text box before the answer is revealed. Type what you remember and choose **Check Answer**, or press `Ctrl/Cmd+Enter`. The plugin shows your submitted answer, beside the stored answer and leaves the scheduling rating to you.
 
 Typed answers are not written back to your note.
 

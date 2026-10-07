@@ -104,6 +104,17 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
         const currentLine = lines[i],
             currentTrimmed = lines[i].trim();
 
+        // Review hints are metadata for the current multiline card, not card text to scan.
+        if (/^\s*<!--\s*SR-HINTS\s*$/i.test(currentLine) && cardType !== null) {
+            const hintLines = [currentLine];
+            while (i + 1 < lines.length && !lines[i].includes("-->")) {
+                i++;
+                hintLines.push(lines[i]);
+            }
+            cardText += "\n" + hintLines.join("\n");
+            continue;
+        }
+
         // Skip everything in HTML comments
         if (currentLine.startsWith("<!--") && !currentLine.startsWith("<!--SR:")) {
             while (i + 1 < lines.length && !lines[i].includes("-->")) i++;

@@ -20,6 +20,7 @@ export default class ResponseSectionComponent {
     public answerButton: SRResponseButtonComponent;
     private typedAnswerPanel: HTMLDivElement;
     private typedAnswerInput: HTMLTextAreaElement;
+    private typedAnswerPreview: HTMLDivElement;
     private checkAnswerButton: SRButtonComponent;
     private hintButton: SRButtonComponent;
 
@@ -30,6 +31,7 @@ export default class ResponseSectionComponent {
         processReview: (response: ReviewResponse) => Promise<void>,
         submitTypedAnswer: (answer: string) => void,
         showNextHint: () => void,
+        renderTypedAnswer: (answer: string, container: HTMLElement) => Promise<void>,
     ) {
         this.responseEl = container.createDiv();
         this.responseEl.addClass("sr-response");
@@ -46,7 +48,11 @@ export default class ResponseSectionComponent {
                 "aria-label": "Type your answer",
             },
         });
+        const preview = this.typedAnswerPanel.createDiv({ cls: "sr-typed-answer-preview" });
+        this.typedAnswerPreview = preview;
         this.typedAnswerInput.addEventListener("input", () => {
+            preview.empty();
+            void renderTypedAnswer(this.typedAnswerInput.value, preview.createDiv());
             this.checkAnswerButton.setDisabled(this.typedAnswerInput.value.trim().length === 0);
         });
         this.typedAnswerInput.addEventListener("keydown", (event: KeyboardEvent) => {
@@ -126,6 +132,7 @@ export default class ResponseSectionComponent {
         this.responseEl.toggleClass("sr-has-typed-answer", typedAnswerEnabled);
         this.typedAnswerPanel.toggleClass("sr-is-hidden", !typedAnswerEnabled);
         this.typedAnswerInput.value = "";
+        this.typedAnswerPreview.empty();
         this.checkAnswerButton.setDisabled(true);
         this.answerButton.buttonEl.removeClass("sr-is-hidden");
         this.setHintProgress(hintCount, 0);

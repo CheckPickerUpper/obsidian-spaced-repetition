@@ -3,12 +3,9 @@ export interface ReviewCardContent {
     hints: string[];
 }
 
-export type TypedAnswerMatch = { kind: "exact" } | { kind: "normalized" } | { kind: "different" };
-
 const HINT_BLOCK_START = /^\s*<!--\s*SR-HINTS\s*$/i;
 const HINT_BLOCK_END = /^\s*-->\s*$/;
 const HINT_LINE = /^\s*(?:\d+[.)]|Hint\s*\d+\s*:)\s*(.*)$/i;
-const COMPLETE_CODE_FENCE = /^```[^\n]*\n([\s\S]*?)\n```\s*$/;
 const CODE_FENCE = /(^|\n)\s*```/;
 const CODE_LANGUAGE = /```([A-Za-z0-9_+#.-]*)[ \t]*\r?\n/;
 
@@ -37,27 +34,6 @@ export function parseReviewCardContent(markdown: string): ReviewCardContent {
 }
 
 /**
- * Compares a submitted answer with the answer stored on the card.
- */
-export function compareTypedAnswer(params: {
-    typedAnswer: string;
-    expectedAnswer: string;
-}): TypedAnswerMatch {
-    const typed: string = comparableAnswer(params.typedAnswer);
-    const expected: string = comparableAnswer(params.expectedAnswer);
-
-    if (typed === expected) {
-        return { kind: "exact" };
-    }
-
-    if (collapseWhitespace(typed) === collapseWhitespace(expected)) {
-        return { kind: "normalized" };
-    }
-
-    return { kind: "different" };
-}
-
-/**
  * Wraps a typed code answer in the language fence used by the expected answer.
  */
 export function formatTypedAnswerForMarkdown(typedAnswer: string, expectedAnswer: string): string {
@@ -67,8 +43,9 @@ export function formatTypedAnswerForMarkdown(typedAnswer: string, expectedAnswer
     }
 
     const language: string = codeLanguage(expectedAnswer);
-    const fence: string = language.length === 0 ? "```" : `\`\`\`${language}`;
-    return `${fence}\n${answer}\n\`\`\``;
+    const runs = answer.match(/`+/g) || [];
+    const fence = "`".repeat(Math.max(3, ...runs.map((run) => run.length + 1)));
+    return `${fence}${language}\n${answer}\n${fence}`;
 }
 
 function findHintBlockStart(lines: string[]): number {
@@ -118,23 +95,6 @@ function parseHints(lines: string[]): string[] {
         .map((hint: string[]) => hint.join("\n").trim())
         .filter((hint: string) => hint.length > 0)
         .slice(0, 3);
-}
-
-function comparableAnswer(answer: string): string {
-    const normalized: string = answer.replaceAll("\r\n", "\n").trim();
-    const codeMatch = normalized.match(COMPLETE_CODE_FENCE);
-    if (codeMatch) {
-        return codeMatch[1].trim();
-    }
-
-    return normalized;
-}
-
-function collapseWhitespace(answer: string): string {
-    return answer
-        .replace(/[ \t]+/g, " ")
-        .replace(/\n+/g, "\n")
-        .trim();
 }
 
 function codeLanguage(markdown: string): string {
